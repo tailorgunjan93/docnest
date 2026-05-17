@@ -13,7 +13,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from DOCNEST.models import RawDocument
+from docnest.models import RawDocument
 
 
 class IParser(ABC):

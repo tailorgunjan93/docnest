@@ -5,9 +5,9 @@ Phase: 1  |  Spec: docs/SPEC_DOCNEST_PYPI.md — Section 10
 """
 
 from __future__ import annotations
-from DOCNEST.parsers.base import IParser
-from DOCNEST.models import RawDocument
-from DOCNEST.exceptions import ParseError
+from docnest.parsers.base import IParser
+from docnest.models import RawDocument
+from docnest.exceptions import ParseError
 
 
 class HTMLParser(IParser):

@@ -13,7 +13,7 @@ Phase: 3  |  Spec: docs/SPEC_DOCNEST_PYPI.md — Section 10
 """
 
 from __future__ import annotations
-from DOCNEST.models import Document, Section, KeyNumber
+from docnest.models import Document, Section, KeyNumber
 
 
 class IntelligenceEngine:

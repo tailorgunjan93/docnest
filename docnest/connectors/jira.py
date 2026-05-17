@@ -11,9 +11,9 @@ TODO (Phase 5):
 """
 
 from __future__ import annotations
-from DOCNEST.connectors.base import IConnector
-from DOCNEST.models import RawDocument
-from DOCNEST.exceptions import ConnectorError
+from docnest.connectors.base import IConnector
+from docnest.models import RawDocument
+from docnest.exceptions import ConnectorError
 
 
 class JiraConnector(IConnector):

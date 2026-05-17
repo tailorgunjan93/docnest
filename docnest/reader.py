@@ -15,8 +15,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from DOCNEST.models import Catalogue
-from DOCNEST.exceptions import UDFReadError
+from docnest.models import Catalogue
+from docnest.exceptions import UDFReadError
 
 
 @dataclass

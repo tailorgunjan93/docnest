@@ -11,7 +11,7 @@ Spec: docs/SPEC_DOCNEST_PYPI.md — Section 11 (full implementation in spec)
 
 from __future__ import annotations
 import numpy as np
-from DOCNEST.exceptions import QuantizationError
+from docnest.exceptions import QuantizationError
 
 
 class Quantizer:

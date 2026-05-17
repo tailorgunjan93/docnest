@@ -11,9 +11,9 @@ class TestUDFWriter:
     """TODO (Phase 4): Uncomment after UDFWriter is implemented."""
 
     # def test_write_creates_zip_file(self, tmp_path, sample_document):
-    #     from DOCNEST.writer import UDFWriter
-    #     from DOCNEST.embedder import NomicEmbedder
-    #     from DOCNEST.quantizer import Quantizer
+    #     from docnest.writer import UDFWriter
+    #     from docnest.embedder import NomicEmbedder
+    #     from docnest.quantizer import Quantizer
     #     writer = UDFWriter(NomicEmbedder(), Quantizer("float16"))
     #     out = str(tmp_path / "test.udf")
     #     writer.write(sample_document, out)

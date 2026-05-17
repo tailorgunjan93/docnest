@@ -10,7 +10,7 @@ Design pattern: Open/Closed — add connectors without touching existing code.
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from DOCNEST.models import RawDocument
+from docnest.models import RawDocument
 
 
 class IConnector(ABC):

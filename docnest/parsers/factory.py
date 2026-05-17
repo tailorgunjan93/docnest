@@ -1,4 +1,4 @@
-﻿"""
+"""
 Parser factory — returns the correct IParser implementation for a given file.
 
 Design pattern: Factory Method
@@ -12,18 +12,18 @@ To register a new parser:
 from __future__ import annotations
 from pathlib import Path
 
-from DOCNEST.parsers.base import IParser
-from DOCNEST.parsers.pdf import DoclingPDFParser
-from DOCNEST.parsers.docx import DoclingDOCXParser
-from DOCNEST.parsers.xlsx import ExcelParser
-from DOCNEST.parsers.html import HTMLParser
-from DOCNEST.parsers.md import MarkdownParser
-from DOCNEST.exceptions import UnsupportedFormatError
+from docnest.parsers.base import IParser
+from docnest.parsers.pdf import DoclingPDFParser
+from docnest.parsers.docx import DocxParser
+from docnest.parsers.xlsx import ExcelParser
+from docnest.parsers.html import HTMLParser
+from docnest.parsers.md import MarkdownParser
+from docnest.exceptions import UnsupportedFormatError
 
 # Registry — order matters: first matching parser wins
 _PARSERS: list[IParser] = [
     DoclingPDFParser(),
-    DoclingDOCXParser(),
+    DocxParser(),
     ExcelParser(),
     HTMLParser(),
     MarkdownParser(),
@@ -57,7 +57,7 @@ class ParserFactory:
         suffix = Path(file_path).suffix
         raise UnsupportedFormatError(
             f"No parser found for '{suffix}'. "
-            f"Supported: pdf, docx, pptx, xlsx, html, md. "
+            f"Supported: pdf, docx, xlsx, html, md. "
             f"See CONTRIBUTING.md to add a new parser."
         )
 

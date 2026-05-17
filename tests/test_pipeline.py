@@ -5,7 +5,7 @@ Requires Ollama running locally with llama3.2 and nomic-embed-text pulled.
 """
 import pytest
 from pathlib import Path
-from DOCNEST.pipeline import DOCNESTPipeline
+from docnest.pipeline import DOCNESTPipeline
 
 
 class TestDOCNESTPipeline:
@@ -22,7 +22,7 @@ class TestDOCNESTPipeline:
     # def test_folder_creates_library_udf(self, tmp_path, fixtures_dir):
     #     pipeline = DOCNESTPipeline()
     #     out = pipeline.convert(str(fixtures_dir), output=str(tmp_path / "library.udf"))
-    #     from DOCNEST.reader import UDFIndex
+    #     from docnest.reader import UDFIndex
     #     index = UDFIndex.load(out)
     #     assert index.catalogue.doc_id or index.catalogue.title
 

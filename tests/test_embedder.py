@@ -4,7 +4,7 @@ Phase: 2  |  Run: pytest tests/test_embedder.py -v
 """
 import pytest
 import numpy as np
-from DOCNEST.embedder import NomicEmbedder, OpenAIEmbedder
+from docnest.embedder import NomicEmbedder, OpenAIEmbedder
 
 
 class TestNomicEmbedder:

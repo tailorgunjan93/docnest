@@ -3,8 +3,8 @@
 Phase: 1  |  Issue: #2  |  Run: pytest tests/test_normalizer.py -v
 """
 import pytest
-from DOCNEST.normalizer import SectionNormaliser
-from DOCNEST.models import RawDocument, Section
+from docnest.normalizer import SectionNormaliser
+from docnest.models import RawDocument, Section
 
 
 def make_raw(sections: list[tuple[int, str]]) -> RawDocument:

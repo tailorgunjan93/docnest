@@ -19,10 +19,10 @@ import zipfile
 from pathlib import Path
 from datetime import datetime, timezone
 
-from DOCNEST.models import Document, Catalogue
-from DOCNEST.embedder import IEmbedder
-from DOCNEST.quantizer import Quantizer
-from DOCNEST.exceptions import UDFWriteError
+from docnest.models import Document, Catalogue
+from docnest.embedder import IEmbedder
+from docnest.quantizer import Quantizer
+from docnest.exceptions import UDFWriteError
 
 UDF_VERSION = "1.0"
 

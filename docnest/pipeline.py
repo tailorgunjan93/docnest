@@ -19,14 +19,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
-from DOCNEST.models import Document
-from DOCNEST.parsers.factory import ParserFactory
-from DOCNEST.normalizer import SectionNormaliser
-from DOCNEST.intelligence import IntelligenceEngine
-from DOCNEST.embedder import IEmbedder, NomicEmbedder
-from DOCNEST.quantizer import Quantizer
-from DOCNEST.writer import UDFWriter
-from DOCNEST.exceptions import DOCNESTError
+from docnest.models import Document
+from docnest.parsers.factory import ParserFactory
+from docnest.normalizer import SectionNormaliser
+from docnest.intelligence import IntelligenceEngine
+from docnest.embedder import IEmbedder, NomicEmbedder
+from docnest.quantizer import Quantizer
+from docnest.writer import UDFWriter
+from docnest.exceptions import DOCNESTError
 
 
 # Callback type: called after each stage completes

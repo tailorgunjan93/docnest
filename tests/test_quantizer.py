@@ -5,8 +5,8 @@ These tests have complete implementations — ready to run once Quantizer is bui
 """
 import pytest
 import numpy as np
-from DOCNEST.quantizer import Quantizer
-from DOCNEST.exceptions import QuantizationError
+from docnest.quantizer import Quantizer
+from docnest.exceptions import QuantizationError
 
 
 class TestQuantizer:

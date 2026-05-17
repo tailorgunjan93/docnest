@@ -11,7 +11,7 @@ Design pattern: single responsibility — normaliser only assigns ids and links.
 """
 
 from __future__ import annotations
-from DOCNEST.models import RawDocument, Document, Section
+from docnest.models import RawDocument, Document, Section
 
 
 class SectionNormaliser:
