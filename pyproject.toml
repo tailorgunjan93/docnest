@@ -3,12 +3,12 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "docforge-ai"
+name = "DOCNEST-ai"
 version = "0.1.0-alpha"
 description = "The document normalization engine RAG has always needed"
 readme = "README.md"
 license = { file = "LICENSE" }
-authors = [{ name = "SynapseAI", email = "hello@github.com/tailorgunjan93/docforged" }]
+authors = [{ name = "SynapseAI", email = "hello@github.com/tailorgunjan93/DOCNESTd" }]
 keywords = [
     "rag", "document-ai", "nlp", "llm", "embeddings",
     "knowledge-base", "document-processing", "information-retrieval",
@@ -52,17 +52,17 @@ dev = [
     "mypy>=1.10",
     "httpx>=0.27",
 ]
-all = ["docforge-ai[openai,connectors]"]
+all = ["DOCNEST-ai[openai,connectors]"]
 
 [project.scripts]
-docforge = "docforge.cli:app"
+DOCNEST = "DOCNEST.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/tailorgunjan93/docforged"
-Documentation = "https://github.com/tailorgunjan93/docforged/blob/main/docs/SPEC_DOCFORGE_PYPI.md"
-Repository = "https://github.com/tailorgunjan93/docforged"
-Issues = "https://github.com/tailorgunjan93/docforged/issues"
-Changelog = "https://github.com/tailorgunjan93/docforged/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/tailorgunjan93/DOCNESTd"
+Documentation = "https://github.com/tailorgunjan93/DOCNESTd/blob/main/docs/SPEC_DOCNEST_PYPI.md"
+Repository = "https://github.com/tailorgunjan93/DOCNESTd"
+Issues = "https://github.com/tailorgunjan93/DOCNESTd/issues"
+Changelog = "https://github.com/tailorgunjan93/DOCNESTd/blob/main/CHANGELOG.md"
 
 [tool.black]
 line-length = 100

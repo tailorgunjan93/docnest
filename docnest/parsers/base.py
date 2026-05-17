@@ -1,11 +1,11 @@
 ﻿"""
-Abstract base class for all DocForge document parsers.
+Abstract base class for all DOCNEST document parsers.
 
 Every parser converts a raw file into a RawDocument. Parsers are responsible
 for Stage 1 (structure extraction) and part of Stage 2 (table preservation).
 They do NOT assign §ids — that is the Normaliser's job.
 
-Spec reference: docs/SPEC_DOCFORGE_PYPI.md — Section 10 (Interfaces & Classes)
+Spec reference: docs/SPEC_DOCNEST_PYPI.md — Section 10 (Interfaces & Classes)
 Design pattern: Template Method (parse() defines the skeleton, _extract() is overridden)
 """
 
@@ -13,7 +13,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from docforge.models import RawDocument
+from DOCNEST.models import RawDocument
 
 
 class IParser(ABC):

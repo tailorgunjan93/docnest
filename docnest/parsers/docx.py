@@ -1,13 +1,13 @@
 ﻿"""
 Word document parser using Docling.
 
-Phase: 1  |  Spec: docs/SPEC_DOCFORGE_PYPI.md — Section 10
+Phase: 1  |  Spec: docs/SPEC_DOCNEST_PYPI.md — Section 10
 """
 
 from __future__ import annotations
-from docforge.parsers.base import IParser
-from docforge.models import RawDocument
-from docforge.exceptions import ParseError
+from DOCNEST.parsers.base import IParser
+from DOCNEST.models import RawDocument
+from DOCNEST.exceptions import ParseError
 
 
 class DoclingDOCXParser(IParser):

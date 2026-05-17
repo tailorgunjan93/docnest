@@ -1,9 +1,0 @@
-﻿"""
-DocForge — The document normalization engine RAG has always needed.
-
-Status: Pre-Alpha. Implementation in progress.
-See docs/SPEC_DOCFORGE_PYPI.md for the full technical specification.
-"""
-
-__version__ = "0.1.0-alpha"
-__author__ = "SynapseAI"

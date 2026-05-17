@@ -1,15 +1,15 @@
 ﻿"""
-DocForge CLI — command-line interface using Typer + Rich.
+DOCNEST CLI — command-line interface using Typer + Rich.
 
 Commands:
-    docforge convert <source>          Convert file or folder to .udf
-    docforge query <udf> <question>    Query a .udf file
-    docforge inspect <udf>             Show catalogue summary
-    docforge stats <udf>               Show detailed statistics
-    docforge sync <connector> ...      Sync from a remote source (Phase 5)
+    DOCNEST convert <source>          Convert file or folder to .udf
+    DOCNEST query <udf> <question>    Query a .udf file
+    DOCNEST inspect <udf>             Show catalogue summary
+    DOCNEST stats <udf>               Show detailed statistics
+    DOCNEST sync <connector> ...      Sync from a remote source (Phase 5)
 
 Phase: 1 (basic convert), 4 (query), 5 (sync)
-Spec: docs/SPEC_DOCFORGE_PYPI.md — Section 12
+Spec: docs/SPEC_DOCNEST_PYPI.md — Section 12
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from rich.console import Console
 from rich.table import Table
 
 app = typer.Typer(
-    name="docforge",
+    name="DOCNEST",
     help="The document normalisation engine RAG has always needed.",
     add_completion=False,
 )
@@ -39,7 +39,7 @@ def convert(
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
     """Convert a document or folder to a .udf knowledge base file."""
-    # TODO (Phase 1): Instantiate DocForgePipeline and call convert()
+    # TODO (Phase 1): Instantiate DOCNESTPipeline and call convert()
     # Show Rich progress bar with on_stage_complete callback
     console.print("[yellow]Convert not yet implemented — see ROADMAP.md Phase 1[/yellow]")
     raise typer.Exit(1)

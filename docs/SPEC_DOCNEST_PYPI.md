@@ -1,4 +1,4 @@
-﻿# DocForge — Python Library
+﻿# DOCNEST — Python Library
 ## Technical Specification v1.0
 
 > **Audience:** Customer, Business Analyst, Architect, Senior Engineer, Market Researcher
@@ -31,13 +31,13 @@ RAG (Retrieval-Augmented Generation) is the dominant pattern for making LLMs use
 
 This approach treats a 40-page financial report the same as a Reddit post. Tables lose their column headers. Sections get cut mid-sentence. Two documents saying the same thing both get retrieved. The LLM receives noise and returns approximate answers.
 
-**DocForge is the ingestion layer RAG has always needed but never had.** It understands document structure before embedding anything.
+**DOCNEST is the ingestion layer RAG has always needed but never had.** It understands document structure before embedding anything.
 
 ---
 
 ## 2. Problem Statement
 
-| Current Pain | Root Cause | DocForge Solution |
+| Current Pain | Root Cause | DOCNEST Solution |
 |---|---|---|
 | Answers missing table data | Text extractors flatten tables | Tables preserved as `{caption, headers, rows}` JSON |
 | Chunks split mid-sentence | Character-count chunking ignores meaning | Sections are natural boundaries (headings = splits) |
@@ -56,27 +56,27 @@ This approach treats a 40-page financial report the same as a Reddit post. Table
 - Time to answer: sub-second for pre-computed intelligence vs multi-second LLM calls
 
 ### For the business
-| Metric | Blind Chunking | DocForge |
+| Metric | Blind Chunking | DOCNEST |
 |---|---|---|
 | LLM API cost per 10K queries | ~$80–$200 | ~$8–$20 |
 | Answer accuracy (internal benchmark) | ~62% | ~89% |
-| Developer integration time | 1 day | 2 hours (`pip install docforge-ai`) |
+| Developer integration time | 1 day | 2 hours (`pip install DOCNEST-ai`) |
 
 ### Market size
-Enterprise RAG market: $1.2B in 2024, projected $8.9B by 2029 (CAGR 49%). Every RAG pipeline is a potential DocForge customer.
+Enterprise RAG market: $1.2B in 2024, projected $8.9B by 2029 (CAGR 49%). Every RAG pipeline is a potential DOCNEST customer.
 
 ---
 
 ## 4. Competitive Landscape
 
-| Tool | What it does | DocForge advantage |
+| Tool | What it does | DOCNEST advantage |
 |---|---|---|
 | **LangChain loaders** | Load docs, blind chunk | No structure, no intelligence |
 | **LlamaIndex** | RAG framework with parsers | Still chunk-based, no pre-computed intelligence |
 | **Docling (IBM)** | Document parsing to markdown | Parsing only — no embedding, no intelligence, no .udf |
 | **Unstructured.io** | Document parsing API | Cloud-only, expensive, no RAG layer |
 | **Azure Document Intelligence** | OCR + extraction | Azure lock-in, no RAG, expensive |
-| **DocForge** | Parse + structure + embed + intelligence + portable format | Full pipeline, local-first, open spec |
+| **DOCNEST** | Parse + structure + embed + intelligence + portable format | Full pipeline, local-first, open spec |
 
 **Gap:** No tool currently combines structured normalization + quantized embeddings + pre-computed intelligence + portable output format in a single open-source Python library.
 
@@ -109,7 +109,7 @@ PDF, DOCX, PPTX, XLSX, HTML, Markdown, Confluence pages, Notion pages, GitHub re
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        DocForge Library                             │
+│                        DOCNEST Library                             │
 │                                                                     │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────────────┐  │
 │  │  Parser      │    │  Normalizer  │    │  Intelligence Engine  │  │
@@ -145,7 +145,7 @@ PDF, DOCX, PPTX, XLSX, HTML, Markdown, Confluence pages, Notion pages, GitHub re
 
 ```mermaid
 graph TD
-    root["docforge/"] --> src["docforge/"]
+    root["DOCNEST/"] --> src["DOCNEST/"]
     root --> tests["tests/"]
     root --> docs["docs/"]
     root --> pyproject["pyproject.toml"]
@@ -178,11 +178,11 @@ graph TD
 
 **Physical layout:**
 ```
-docforge/
-├── docforge/
+DOCNEST/
+├── DOCNEST/
 │   ├── __init__.py
 │   ├── models.py           # Pydantic models — Section, Document, Catalogue
-│   ├── exceptions.py       # DocForgeError, ParseError, EmbedError, SizeLimitError
+│   ├── exceptions.py       # DOCNESTError, ParseError, EmbedError, SizeLimitError
 │   ├── cli.py              # typer CLI entry point
 │   ├── parsers/
 │   │   ├── base.py         # IParser abstract base class
@@ -203,7 +203,7 @@ docforge/
 │   │   ├── github.py       # GitHubConnector
 │   │   ├── confluence.py   # ConfluenceConnector
 │   │   └── notion.py       # NotionConnector
-│   └── pipeline.py         # DocForgePipeline — orchestrates all stages
+│   └── pipeline.py         # DOCNESTPipeline — orchestrates all stages
 ├── tests/
 │   ├── fixtures/           # sample PDFs, DOCX, XLSX for tests
 │   ├── test_parsers.py
@@ -262,7 +262,7 @@ sequenceDiagram
 | **O** — Open/Closed | `ParserFactory` is open for extension (add `PPTXParser`) without modifying existing parsers. `EmbedderStrategy` accepts new providers without changing the pipeline. |
 | **L** — Liskov Substitution | Any `IParser` implementation can replace another — `DoclingPDFParser` and `ExcelParser` both return `RawDocument` and are interchangeable from the pipeline's perspective. |
 | **I** — Interface Segregation | `IParser` only declares `parse()`. `IEmbedder` only declares `embed()`. Connectors implement `IConnector` not `IParser`. No fat interfaces. |
-| **D** — Dependency Inversion | `DocForgePipeline` depends on `IParser`, `IEmbedder`, `IQuantizer` abstractions — not concrete classes. Concrete implementations injected at construction time. |
+| **D** — Dependency Inversion | `DOCNESTPipeline` depends on `IParser`, `IEmbedder`, `IQuantizer` abstractions — not concrete classes. Concrete implementations injected at construction time. |
 
 ### Design Patterns
 
@@ -270,7 +270,7 @@ sequenceDiagram
 |---|---|---|
 | **Factory** | `ParserFactory` | Selects correct parser from file extension without if/else chains in pipeline |
 | **Strategy** | `EmbedderStrategy` | Swap embedding model (nomic, openai, google) without changing pipeline |
-| **Pipeline** | `DocForgePipeline` | 6 ordered stages, each transforms the data and passes to next |
+| **Pipeline** | `DOCNESTPipeline` | 6 ordered stages, each transforms the data and passes to next |
 | **Builder** | `UDFWriter` | Builds the zip incrementally — manifest, catalogue, content, assets |
 | **Repository** | `UDFIndex` | Abstracts .udf file access — `query()`, `get_section()`, `get_catalogue()` |
 | **Observer** | Progress callbacks | `on_stage_complete` hook for CLI progress display |
@@ -281,9 +281,9 @@ sequenceDiagram
 ## 10. Interfaces & Concrete Classes
 
 ```python
-# docforge/parsers/base.py
+# DOCNEST/parsers/base.py
 from abc import ABC, abstractmethod
-from docforge.models import RawDocument
+from DOCNEST.models import RawDocument
 
 class IParser(ABC):
     """Converts a raw file into a structured RawDocument."""
@@ -308,7 +308,7 @@ class MarkdownParser(IParser): ...        # Markdown via python-markdown
 ```
 
 ```python
-# docforge/embedder.py
+# DOCNEST/embedder.py
 from abc import ABC, abstractmethod
 import numpy as np
 
@@ -333,7 +333,7 @@ class GoogleEmbedder(IEmbedder): ...      # text-embedding-004
 ```
 
 ```python
-# docforge/models.py
+# DOCNEST/models.py
 from pydantic import BaseModel
 from typing import Optional
 
@@ -402,17 +402,17 @@ class Catalogue(BaseModel):
 ### Core pipeline implementation
 
 ```python
-# docforge/pipeline.py
+# DOCNEST/pipeline.py
 from pathlib import Path
-from docforge.parsers.factory import ParserFactory
-from docforge.normalizer import SectionNormalizer
-from docforge.intelligence import IntelligenceEngine
-from docforge.embedder import IEmbedder, NomicEmbedder
-from docforge.quantizer import Quantizer
-from docforge.writer import UDFWriter
-from docforge.models import Document
+from DOCNEST.parsers.factory import ParserFactory
+from DOCNEST.normalizer import SectionNormalizer
+from DOCNEST.intelligence import IntelligenceEngine
+from DOCNEST.embedder import IEmbedder, NomicEmbedder
+from DOCNEST.quantizer import Quantizer
+from DOCNEST.writer import UDFWriter
+from DOCNEST.models import Document
 
-class DocForgePipeline:
+class DOCNESTPipeline:
     """
     Orchestrates the 6-stage normalization pipeline.
     All dependencies injected — fully testable with mocks.
@@ -484,7 +484,7 @@ class DocForgePipeline:
 ```
 
 ```python
-# docforge/quantizer.py
+# DOCNEST/quantizer.py
 import numpy as np
 import struct
 
@@ -523,10 +523,10 @@ class Quantizer:
 
 ### For end users
 ```bash
-pip install docforge-ai
+pip install DOCNEST-ai
 
 # Verify
-docforge --version
+DOCNEST --version
 
 # First conversion (uses Ollama locally)
 # 1. Install Ollama: https://ollama.ai
@@ -534,30 +534,30 @@ ollama pull llama3.2
 ollama pull nomic-embed-text
 
 # 2. Convert a document
-docforge convert report.pdf
+DOCNEST convert report.pdf
 
 # 3. Query it
-docforge query report.udf "What are the key findings?"
+DOCNEST query report.udf "What are the key findings?"
 ```
 
-### For developers integrating DocForge
+### For developers integrating DOCNEST
 ```bash
-pip install docforge-ai
+pip install DOCNEST-ai
 
 # With cloud LLM (no Ollama needed)
-pip install docforge-ai[openai]
+pip install DOCNEST-ai[openai]
 
 # With all connectors
-pip install docforge-ai[connectors]
+pip install DOCNEST-ai[connectors]
 
 # Full install
-pip install docforge-ai[all]
+pip install DOCNEST-ai[all]
 ```
 
 ### For contributors
 ```bash
-git clone https://github.com/tailorgunjan93/docforged
-cd docforge
+git clone https://github.com/tailorgunjan93/DOCNESTd
+cd DOCNEST
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 pytest tests/ -v
@@ -606,8 +606,8 @@ pytest tests/ -v
 ```python
 # tests/test_parsers.py
 import pytest
-from docforge.parsers.factory import ParserFactory
-from docforge.parsers.pdf import DoclingPDFParser
+from DOCNEST.parsers.factory import ParserFactory
+from DOCNEST.parsers.pdf import DoclingPDFParser
 
 class TestParserFactory:
     def test_returns_pdf_parser_for_pdf(self):
@@ -637,8 +637,8 @@ class TestPDFParser:
 
 ```python
 # tests/test_normalizer.py
-from docforge.normalizer import SectionNormalizer
-from docforge.models import RawDocument, Section
+from DOCNEST.normalizer import SectionNormalizer
+from DOCNEST.models import RawDocument, Section
 
 class TestSectionNormalizer:
     def test_assigns_section_ids(self):
@@ -659,7 +659,7 @@ class TestSectionNormalizer:
 ```python
 # tests/test_quantizer.py
 import numpy as np
-from docforge.quantizer import Quantizer
+from DOCNEST.quantizer import Quantizer
 
 class TestQuantizer:
     def test_float16_roundtrip(self):
@@ -679,19 +679,19 @@ class TestQuantizer:
 ### Integration tests
 ```python
 # tests/test_pipeline.py
-class TestDocForgePipeline:
+class TestDOCNESTPipeline:
     def test_end_to_end_pdf(self, tmp_path, fixtures_dir):
-        pipeline = DocForgePipeline(llm_provider="ollama", llm_model="llama3.2")
+        pipeline = DOCNESTPipeline(llm_provider="ollama", llm_model="llama3.2")
         out = pipeline.convert(str(fixtures_dir / "annual_report.pdf"),
                                output=str(tmp_path / "out.udf"))
         assert Path(out).exists()
         assert Path(out).stat().st_size > 0
 
     def test_folder_creates_library_udf(self, tmp_path, fixtures_dir):
-        pipeline = DocForgePipeline()
+        pipeline = DOCNESTPipeline()
         out = pipeline.convert(str(fixtures_dir / "reports/"),
                                output=str(tmp_path / "library.udf"))
-        from docforge.reader import UDFIndex
+        from DOCNEST.reader import UDFIndex
         index = UDFIndex.load(out)
         assert index.catalogue.doc_count > 1
 ```

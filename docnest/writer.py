@@ -8,7 +8,7 @@ A .udf file is a ZIP archive containing:
     assets/          — images and extracted tables
     original/        — source file (optional, --include-originals flag)
 
-Phase: 4  |  Spec: docs/SPEC_DOCFORGE_PYPI.md — Section 11
+Phase: 4  |  Spec: docs/SPEC_DOCNEST_PYPI.md — Section 11
            |  UDF format: docs/SPEC_UDF_FORMAT.md (full field reference)
 Design pattern: Builder — builds the zip incrementally.
 """
@@ -19,10 +19,10 @@ import zipfile
 from pathlib import Path
 from datetime import datetime, timezone
 
-from docforge.models import Document, Catalogue
-from docforge.embedder import IEmbedder
-from docforge.quantizer import Quantizer
-from docforge.exceptions import UDFWriteError
+from DOCNEST.models import Document, Catalogue
+from DOCNEST.embedder import IEmbedder
+from DOCNEST.quantizer import Quantizer
+from DOCNEST.exceptions import UDFWriteError
 
 UDF_VERSION = "1.0"
 

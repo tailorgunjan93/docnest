@@ -5,14 +5,14 @@ Handles both text-based and scanned PDFs (via Docling's built-in OCR).
 Tables are extracted as structured { caption, headers, rows[] } — never as flat text.
 
 Phase: 1 (Core Parser & Normaliser)
-Issue: github.com/tailorgunjan93/docforged/issues/1
-Spec: docs/SPEC_DOCFORGE_PYPI.md — Section 10
+Issue: github.com/tailorgunjan93/DOCNESTd/issues/1
+Spec: docs/SPEC_DOCNEST_PYPI.md — Section 10
 """
 
 from __future__ import annotations
-from docforge.parsers.base import IParser
-from docforge.models import RawDocument
-from docforge.exceptions import ParseError
+from DOCNEST.parsers.base import IParser
+from DOCNEST.models import RawDocument
+from DOCNEST.exceptions import ParseError
 
 
 class DoclingPDFParser(IParser):
@@ -55,5 +55,5 @@ class DoclingPDFParser(IParser):
         # return self._map_to_raw_document(result, file_path)
         raise NotImplementedError(
             "DoclingPDFParser not yet implemented. "
-            "See issue #1: github.com/tailorgunjan93/docforged/issues/1"
+            "See issue #1: github.com/tailorgunjan93/DOCNESTd/issues/1"
         )

@@ -1,5 +1,5 @@
 ﻿"""
-Intelligence Engine — Stages 3, 4, and 5 of the DocForge pipeline.
+Intelligence Engine — Stages 3, 4, and 5 of the DOCNEST pipeline.
 
 Uses an LLM to enrich documents with:
   Stage 3: Table normalisation (verify/fix column structure)
@@ -9,11 +9,11 @@ Uses an LLM to enrich documents with:
 LLM calls happen ONCE per document at ingest time.
 Every future query benefits for free — this is the core cost advantage.
 
-Phase: 3  |  Spec: docs/SPEC_DOCFORGE_PYPI.md — Section 10
+Phase: 3  |  Spec: docs/SPEC_DOCNEST_PYPI.md — Section 10
 """
 
 from __future__ import annotations
-from docforge.models import Document, Section, KeyNumber
+from DOCNEST.models import Document, Section, KeyNumber
 
 
 class IntelligenceEngine:

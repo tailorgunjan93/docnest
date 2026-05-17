@@ -8,15 +8,15 @@ Loads a .udf file into memory and resolves queries through five escalating layer
     Layer 3 — Multi-section synthesis (~900 tokens, 2-5s)
     Layer 4 — Full document fallback (~4000 tokens, 5-15s)
 
-Phase: 4  |  Spec: docs/SPEC_DOCFORGE_PYPI.md — Sections 8 and 11
+Phase: 4  |  Spec: docs/SPEC_DOCNEST_PYPI.md — Sections 8 and 11
 """
 
 from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from docforge.models import Catalogue
-from docforge.exceptions import UDFReadError
+from DOCNEST.models import Catalogue
+from DOCNEST.exceptions import UDFReadError
 
 
 @dataclass

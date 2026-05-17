@@ -1,5 +1,5 @@
 ﻿"""
-DocForgePipeline — orchestrates all 6 stages of document normalisation.
+DOCNESTPipeline — orchestrates all 6 stages of document normalisation.
 
 This is the main entry point for programmatic use. The CLI and all
 integrations (SynapseKB, Synapse Local) go through this class.
@@ -11,7 +11,7 @@ Stage 4  Summarise      → IntelligenceEngine writes one sentence per section
 Stage 5  Enrich doc     → IntelligenceEngine writes summary, insights, key_numbers
 Stage 6  Embed + quant  → Embedder generates vectors, Quantizer compresses
 
-Phase: 1-6  |  Spec: docs/SPEC_DOCFORGE_PYPI.md — Section 11
+Phase: 1-6  |  Spec: docs/SPEC_DOCNEST_PYPI.md — Section 11
 Design pattern: Pipeline + Dependency Inversion (all deps injected)
 """
 
@@ -19,32 +19,32 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
-from docforge.models import Document
-from docforge.parsers.factory import ParserFactory
-from docforge.normalizer import SectionNormaliser
-from docforge.intelligence import IntelligenceEngine
-from docforge.embedder import IEmbedder, NomicEmbedder
-from docforge.quantizer import Quantizer
-from docforge.writer import UDFWriter
-from docforge.exceptions import DocForgeError
+from DOCNEST.models import Document
+from DOCNEST.parsers.factory import ParserFactory
+from DOCNEST.normalizer import SectionNormaliser
+from DOCNEST.intelligence import IntelligenceEngine
+from DOCNEST.embedder import IEmbedder, NomicEmbedder
+from DOCNEST.quantizer import Quantizer
+from DOCNEST.writer import UDFWriter
+from DOCNEST.exceptions import DOCNESTError
 
 
 # Callback type: called after each stage completes
 StageCallback = Callable[[str, object], None]
 
 
-class DocForgePipeline:
+class DOCNESTPipeline:
     """Orchestrates the complete 6-stage document normalisation pipeline.
 
     All dependencies are injected — the pipeline is fully testable with mocks.
 
     Usage (defaults — fully local, free):
-        pipeline = DocForgePipeline()
+        pipeline = DOCNESTPipeline()
         pipeline.convert("report.pdf")                      # → report.udf
         pipeline.convert("./reports/")                      # → reports.udf (library)
 
     Usage (custom config):
-        pipeline = DocForgePipeline(
+        pipeline = DOCNESTPipeline(
             embedder=OpenAIEmbedder(api_key="sk-..."),
             quantization="int8",
             llm_provider="groq",
@@ -90,7 +90,7 @@ class DocForgePipeline:
             Fully normalised Document with §ids, summaries, insights, and embeddings.
 
         Raises:
-            DocForgeError: If any pipeline stage fails.
+            DOCNESTError: If any pipeline stage fails.
 
         TODO (as each phase is implemented, uncomment the relevant stage):
         """
@@ -136,7 +136,7 @@ class DocForgePipeline:
             Path to the created .udf file.
 
         Raises:
-            DocForgeError: If processing or writing fails.
+            DOCNESTError: If processing or writing fails.
         """
         path = Path(source)
         if path.is_dir():

@@ -1,46 +1,46 @@
 ﻿"""
-Custom exceptions for DocForge.
+Custom exceptions for DOCNEST.
 
-All DocForge errors inherit from DocForgeError so callers can catch broadly
+All DOCNEST errors inherit from DOCNESTError so callers can catch broadly
 or specifically as needed.
 """
 
 
-class DocForgeError(Exception):
-    """Base exception for all DocForge errors."""
+class DOCNESTError(Exception):
+    """Base exception for all DOCNEST errors."""
 
 
-class ParseError(DocForgeError):
+class ParseError(DOCNESTError):
     """Raised when a parser cannot extract content from a document."""
 
 
-class UnsupportedFormatError(DocForgeError):
+class UnsupportedFormatError(DOCNESTError):
     """Raised when no parser supports the given file format."""
 
 
-class EmbedError(DocForgeError):
+class EmbedError(DOCNESTError):
     """Raised when embedding generation fails."""
 
 
-class IntelligenceError(DocForgeError):
+class IntelligenceError(DOCNESTError):
     """Raised when LLM-powered enrichment fails."""
 
 
-class UDFWriteError(DocForgeError):
+class UDFWriteError(DOCNESTError):
     """Raised when writing a .udf file fails."""
 
 
-class UDFReadError(DocForgeError):
+class UDFReadError(DOCNESTError):
     """Raised when reading or parsing a .udf file fails."""
 
 
-class SizeLimitError(DocForgeError):
+class SizeLimitError(DOCNESTError):
     """Raised when the estimated .udf size exceeds the configured limit."""
 
 
-class ConnectorError(DocForgeError):
+class ConnectorError(DOCNESTError):
     """Raised when a source connector fails to fetch documents."""
 
 
-class QuantizationError(DocForgeError):
+class QuantizationError(DOCNESTError):
     """Raised when embedding quantization or dequantization fails."""

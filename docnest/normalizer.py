@@ -1,17 +1,17 @@
 ﻿"""
-Section Normaliser — Stage 2 of the DocForge pipeline.
+Section Normaliser — Stage 2 of the DOCNEST pipeline.
 
 Assigns hierarchical §ids to every section in a RawDocument and builds
 the parent/child tree. This is what turns a flat list of sections into
 a navigable library structure.
 
-Phase: 1  |  Issue: github.com/tailorgunjan93/docforged/issues/2
-Spec: docs/SPEC_DOCFORGE_PYPI.md — Section 10
+Phase: 1  |  Issue: github.com/tailorgunjan93/DOCNESTd/issues/2
+Spec: docs/SPEC_DOCNEST_PYPI.md — Section 10
 Design pattern: single responsibility — normaliser only assigns ids and links.
 """
 
 from __future__ import annotations
-from docforge.models import RawDocument, Document, Section
+from DOCNEST.models import RawDocument, Document, Section
 
 
 class SectionNormaliser:
@@ -51,7 +51,7 @@ class SectionNormaliser:
         # TODO: Implement §id assignment
         raise NotImplementedError(
             "SectionNormaliser not yet implemented. "
-            "See issue #2: github.com/tailorgunjan93/docforged/issues/2"
+            "See issue #2: github.com/tailorgunjan93/DOCNESTd/issues/2"
         )
 
     def _build_section_id(self, counters: list[int], level: int) -> str:

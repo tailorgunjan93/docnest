@@ -1,10 +1,10 @@
 ﻿"""
-Embedding generation — Stage 6a of the DocForge pipeline.
+Embedding generation — Stage 6a of the DOCNEST pipeline.
 
 Generates dense vector representations of section text for semantic search.
 Embeddings are computed once at ingest time and stored (quantised) in the .udf.
 
-Phase: 2  |  Spec: docs/SPEC_DOCFORGE_PYPI.md — Section 10
+Phase: 2  |  Spec: docs/SPEC_DOCNEST_PYPI.md — Section 10
 Design pattern: Strategy — swap embedding model without changing pipeline.
 """
 
@@ -17,7 +17,7 @@ class IEmbedder(ABC):
     """Abstract base for all embedding providers.
 
     Implement this to add a new embedding model.
-    Register in pipeline.py or pass directly to DocForgePipeline.
+    Register in pipeline.py or pass directly to DOCNESTPipeline.
     """
 
     @abstractmethod

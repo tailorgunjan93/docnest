@@ -2,7 +2,7 @@
 
 ## Our Pledge
 
-We are committed to making participation in the DocForge community a welcoming experience for everyone, regardless of age, body size, disability, ethnicity, gender identity, level of experience, nationality, personal appearance, race, religion, or sexual identity and orientation.
+We are committed to making participation in the DOCNEST community a welcoming experience for everyone, regardless of age, body size, disability, ethnicity, gender identity, level of experience, nationality, personal appearance, race, religion, or sexual identity and orientation.
 
 ## Our Standards
 
@@ -21,7 +21,7 @@ We are committed to making participation in the DocForge community a welcoming e
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by opening a private issue or emailing conduct@github.com/tailorgunjan93/docforged. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by opening a private issue or emailing conduct@github.com/tailorgunjan93/DOCNESTd. All complaints will be reviewed and investigated promptly and fairly.
 
 ## Attribution
 

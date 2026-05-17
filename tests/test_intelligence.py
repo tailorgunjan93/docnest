@@ -11,7 +11,7 @@ class TestIntelligenceEngine:
     """TODO (Phase 3): Uncomment after IntelligenceEngine is implemented."""
 
     # def test_enrich_sections_fills_summary(self):
-    #     from docforge.intelligence import IntelligenceEngine
+    #     from DOCNEST.intelligence import IntelligenceEngine
     #     engine = IntelligenceEngine(provider="ollama", model="llama3.2")
     #     doc = make_test_document()
     #     with patch.object(engine, "_call_llm", return_value="One sentence summary."):
@@ -19,7 +19,7 @@ class TestIntelligenceEngine:
     #     assert all(s.summary for s in enriched.sections)
 
     # def test_enrich_document_fills_insights(self):
-    #     from docforge.intelligence import IntelligenceEngine
+    #     from DOCNEST.intelligence import IntelligenceEngine
     #     engine = IntelligenceEngine()
     #     doc = make_test_document_with_summaries()
     #     mock_response = '''{"summary": "Test.", "insights": ["Insight 1"], "key_numbers": []}'''

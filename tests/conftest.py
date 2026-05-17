@@ -1,5 +1,5 @@
 ﻿"""
-Shared pytest fixtures for all DocForge tests.
+Shared pytest fixtures for all DOCNEST tests.
 
 Place sample document files in tests/fixtures/ — see tests/fixtures/README.md
 for naming conventions and what files are needed.

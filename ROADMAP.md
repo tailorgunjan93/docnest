@@ -1,4 +1,4 @@
-﻿# DocForge Roadmap
+﻿# DOCNEST Roadmap
 
 > Living document — updated as the project evolves.
 > Vote on features by reacting 👍 to the linked issue.
@@ -8,7 +8,7 @@
 ## Current Status: Pre-Alpha
 
 The architecture is fully designed. Implementation starts now.
-See [SPEC_DOCFORGE_PYPI.md](docs/SPEC_DOCFORGE_PYPI.md) for the complete technical spec.
+See [SPEC_DOCNEST_PYPI.md](docs/SPEC_DOCNEST_PYPI.md) for the complete technical spec.
 
 ---
 
@@ -24,7 +24,7 @@ See [SPEC_DOCFORGE_PYPI.md](docs/SPEC_DOCFORGE_PYPI.md) for the complete technic
 - [ ] `SectionNormalizer` — assigns `§id` to every heading
 - [ ] Table normalization — `{ caption, headers, rows[] }` JSON
 - [ ] `RawDocument` and `Section` Pydantic models
-- [ ] CLI: `docforge convert report.pdf`
+- [ ] CLI: `DOCNEST convert report.pdf`
 
 ---
 
@@ -37,7 +37,7 @@ See [SPEC_DOCFORGE_PYPI.md](docs/SPEC_DOCFORGE_PYPI.md) for the complete technic
 - [ ] `GoogleEmbedder` — `text-embedding-004`
 - [ ] `Quantizer` — float32 / float16 / int8 / binary
 - [ ] BM25 keyword index builder (`rank-bm25`)
-- [ ] CLI: `docforge convert --embedding-model nomic-embed-text --quantization float16`
+- [ ] CLI: `DOCNEST convert --embedding-model nomic-embed-text --quantization float16`
 
 ---
 
@@ -51,7 +51,7 @@ See [SPEC_DOCFORGE_PYPI.md](docs/SPEC_DOCFORGE_PYPI.md) for the complete technic
 - [ ] `key_numbers[]` extraction — metrics with `§citation`
 - [ ] Ollama local LLM support
 - [ ] OpenAI / Anthropic / Groq / Google support
-- [ ] CLI: `docforge convert --llm-provider ollama --llm-model llama3.2`
+- [ ] CLI: `DOCNEST convert --llm-provider ollama --llm-model llama3.2`
 
 ---
 
@@ -65,7 +65,7 @@ See [SPEC_DOCFORGE_PYPI.md](docs/SPEC_DOCFORGE_PYPI.md) for the complete technic
 - [ ] Layer 2: section-scoped LLM
 - [ ] Layer 3: multi-section synthesis
 - [ ] Layer 4: full document fallback
-- [ ] CLI: `docforge query report.udf "What are the key risks?"`
+- [ ] CLI: `DOCNEST query report.udf "What are the key risks?"`
 - [ ] `.udf.chat` sidecar read/write
 
 ---
@@ -78,27 +78,27 @@ See [SPEC_DOCFORGE_PYPI.md](docs/SPEC_DOCFORGE_PYPI.md) for the complete technic
 - [ ] `ConfluenceConnector` — spaces, pages, children
 - [ ] `NotionConnector` — pages, databases
 - [ ] `JiraConnector` — projects, issues, epics
-- [ ] CLI: `docforge sync github --repo org/repo --token $TOKEN`
+- [ ] CLI: `DOCNEST sync github --repo org/repo --token $TOKEN`
 
 ---
 
 ## Phase 6 — PyPI Release
 **Target: v1.0.0**
 
-- [ ] `pip install docforge-ai`
+- [ ] `pip install DOCNEST-ai`
 - [ ] 85%+ test coverage
 - [ ] Full type annotations + mypy passing
 - [ ] API stable — semver guaranteed from 1.0.0
-- [ ] Comprehensive docs at github.com/tailorgunjan93/docforged/blob/main/docs/SPEC_DOCFORGE_PYPI.md
+- [ ] Comprehensive docs at github.com/tailorgunjan93/DOCNESTd/blob/main/docs/SPEC_DOCNEST_PYPI.md
 - [ ] Example notebooks (Jupyter)
-- [ ] Docker image: `ghcr.io/tailorgunjan93/docforge:latest`
+- [ ] Docker image: `ghcr.io/tailorgunjan93/DOCNEST:latest`
 
 ---
 
 ## Phase 7 — Library Mode (Folder → Single .udf)
 **Target: v1.1.0**
 
-- [ ] `docforge convert ./folder/ --output library.udf`
+- [ ] `DOCNEST convert ./folder/ --output library.udf`
 - [ ] `library_catalogue.json` unified cross-document index
 - [ ] Worker centroid embeddings for hierarchical routing
 - [ ] 200MB size guard with `--split` auto-sharding
@@ -136,7 +136,7 @@ These are not committed — open a Discussion to vote/discuss:
 ## How to Influence the Roadmap
 
 1. **Vote** — react 👍 to issues you care about
-2. **Discuss** — open a [Discussion](https://github.com/tailorgunjan93/docforged/discussions) for big ideas
+2. **Discuss** — open a [Discussion](https://github.com/tailorgunjan93/DOCNESTd/discussions) for big ideas
 3. **Build** — see [CONTRIBUTING.md](CONTRIBUTING.md) and claim an issue
 
 The features with the most votes get prioritized next.

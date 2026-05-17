@@ -1,17 +1,17 @@
 ﻿"""
-Embedding quantiser — Stage 6b of the DocForge pipeline.
+Embedding quantiser — Stage 6b of the DOCNEST pipeline.
 
 Compresses float32 embedding vectors to smaller byte representations for
 storage inside .udf files. Quantisation is lossy but the accuracy trade-off
 is minimal (1-2% for int8, negligible for float16).
 
-Phase: 2  |  Issue: github.com/tailorgunjan93/docforged/issues/3
-Spec: docs/SPEC_DOCFORGE_PYPI.md — Section 11 (full implementation in spec)
+Phase: 2  |  Issue: github.com/tailorgunjan93/DOCNESTd/issues/3
+Spec: docs/SPEC_DOCNEST_PYPI.md — Section 11 (full implementation in spec)
 """
 
 from __future__ import annotations
 import numpy as np
-from docforge.exceptions import QuantizationError
+from DOCNEST.exceptions import QuantizationError
 
 
 class Quantizer:
@@ -29,7 +29,7 @@ class Quantizer:
         recovered = q.dequantize(compressed, dims=768)  # np.ndarray
 
     The full implementation is provided in the spec — this is ready to implement:
-    See docs/SPEC_DOCFORGE_PYPI.md Section 11 → Quantizer class code snippet.
+    See docs/SPEC_DOCNEST_PYPI.md Section 11 → Quantizer class code snippet.
     """
 
     SUPPORTED_MODES = ("float32", "float16", "int8", "binary")
@@ -68,7 +68,7 @@ class Quantizer:
         """
         raise NotImplementedError(
             "Quantizer not yet implemented. "
-            "See issue #3 and docs/SPEC_DOCFORGE_PYPI.md Section 11 for full code."
+            "See issue #3 and docs/SPEC_DOCNEST_PYPI.md Section 11 for full code."
         )
 
     def dequantize(self, data: bytes, dims: int) -> np.ndarray:

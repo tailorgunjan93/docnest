@@ -1,10 +1,10 @@
 ﻿"""
-Data models for DocForge.
+Data models for DOCNEST.
 
 All models are Pydantic v2 — fully typed, validated, and serialisable to JSON.
 These are the core data contracts that flow between every stage of the pipeline.
 
-Spec reference: docs/SPEC_DOCFORGE_PYPI.md — Section 10 (Interfaces & Classes)
+Spec reference: docs/SPEC_DOCNEST_PYPI.md — Section 10 (Interfaces & Classes)
 """
 
 from __future__ import annotations

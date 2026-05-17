@@ -2,7 +2,7 @@
 Parser factory — returns the correct IParser implementation for a given file.
 
 Design pattern: Factory Method
-Spec reference: docs/SPEC_DOCFORGE_PYPI.md — Section 9 (Design Patterns)
+Spec reference: docs/SPEC_DOCNEST_PYPI.md — Section 9 (Design Patterns)
 
 To register a new parser:
     1. Import it here
@@ -12,13 +12,13 @@ To register a new parser:
 from __future__ import annotations
 from pathlib import Path
 
-from docforge.parsers.base import IParser
-from docforge.parsers.pdf import DoclingPDFParser
-from docforge.parsers.docx import DoclingDOCXParser
-from docforge.parsers.xlsx import ExcelParser
-from docforge.parsers.html import HTMLParser
-from docforge.parsers.md import MarkdownParser
-from docforge.exceptions import UnsupportedFormatError
+from DOCNEST.parsers.base import IParser
+from DOCNEST.parsers.pdf import DoclingPDFParser
+from DOCNEST.parsers.docx import DoclingDOCXParser
+from DOCNEST.parsers.xlsx import ExcelParser
+from DOCNEST.parsers.html import HTMLParser
+from DOCNEST.parsers.md import MarkdownParser
+from DOCNEST.exceptions import UnsupportedFormatError
 
 # Registry — order matters: first matching parser wins
 _PARSERS: list[IParser] = [

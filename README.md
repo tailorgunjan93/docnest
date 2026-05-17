@@ -1,22 +1,22 @@
 ﻿<div align="center">
 
-<img src="docs/logo.svg" alt="DocForge Logo" width="120" />
+<img src="docs/logo.svg" alt="DOCNEST Logo" width="120" />
 
-# DocForge
+# DOCNEST
 
 **The document normalization engine RAG has always needed.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)](https://python.org)
-[![PyPI](https://img.shields.io/pypi/v/docforge-ai?color=green)](https://pypi.org/project/docforge-ai)
+[![PyPI](https://img.shields.io/pypi/v/DOCNEST-ai?color=green)](https://pypi.org/project/DOCNEST-ai)
 [![Status](https://img.shields.io/badge/status-pre--alpha-orange)]()
-[![Stars](https://img.shields.io/github/stars/tailorgunjan93/docforged?style=social)](https://github.com/tailorgunjan93/docforged)
-[![Contributors](https://img.shields.io/github/contributors/tailorgunjan93/docforged)](https://github.com/tailorgunjan93/docforged/graphs/contributors)
-[![Discord](https://img.shields.io/badge/Discord-Join-7289da?logo=discord)](https://discord.gg/docforged)
+[![Stars](https://img.shields.io/github/stars/tailorgunjan93/DOCNESTd?style=social)](https://github.com/tailorgunjan93/DOCNESTd)
+[![Contributors](https://img.shields.io/github/contributors/tailorgunjan93/DOCNESTd)](https://github.com/tailorgunjan93/DOCNESTd/graphs/contributors)
+[![Discord](https://img.shields.io/badge/Discord-Join-7289da?logo=discord)](https://discord.gg/DOCNESTd)
 
 *Parse any document. Understand its structure. Build RAG that actually works.*
 
-[Why DocForge](#-why-docforge) •
+[Why DOCNEST](#-why-DOCNEST) •
 [Quick Start](#-quick-start) •
 [How It Works](#-how-it-works) •
 [Roadmap](#-roadmap) •
@@ -47,14 +47,14 @@ What gets silently destroyed:
 
 ---
 
-## ✨ Why DocForge
+## ✨ Why DOCNEST
 
-DocForge reads the *structure* of a document before touching the content. Every heading becomes a navigable `§section`. Every table is preserved as `{ caption, headers, rows[] }`. Every section gets a one-sentence summary, a keyword index, and a quantized embedding — computed once at ingest, used forever.
+DOCNEST reads the *structure* of a document before touching the content. Every heading becomes a navigable `§section`. Every table is preserved as `{ caption, headers, rows[] }`. Every section gets a one-sentence summary, a keyword index, and a quantized embedding — computed once at ingest, used forever.
 
 ```python
-from docforge import DocForge
+from DOCNEST import DOCNEST
 
-forge = DocForge(embedding_model="nomic-embed-text", llm_provider="ollama")
+forge = DOCNEST(embedding_model="nomic-embed-text", llm_provider="ollama")
 
 # Single document
 forge.convert("annual-report.pdf")  # → annual-report.udf
@@ -64,7 +64,7 @@ forge.convert("./reports/")         # → reports.udf
 ```
 
 ```python
-from docforge import UDFIndex
+from DOCNEST import UDFIndex
 
 index = UDFIndex.load("reports.udf")
 result = index.query("What was Q3 revenue?")
@@ -78,7 +78,7 @@ print(result.tokens_used) # 287  (vs ~4000 with blind chunking)
 
 ## 🧠 How It Works
 
-DocForge runs a **6-stage normalization pipeline** on every document:
+DOCNEST runs a **6-stage normalization pipeline** on every document:
 
 ```
 Stage 1  Structure Extraction    (Docling)     — headings, tables, lists, hierarchy
@@ -106,7 +106,7 @@ document.udf  (zip)
 
 ## ⚡ Query Resolution — Five Layers
 
-DocForge resolves queries without sending full documents to the LLM:
+DOCNEST resolves queries without sending full documents to the LLM:
 
 | Layer | Mechanism | Tokens | Latency |
 |---|---|---|---|
@@ -142,7 +142,7 @@ DocForge resolves queries without sending full documents to the LLM:
 | **3** | Intelligence engine (summary, insights, key_numbers) | 📋 Planned |
 | **4** | UDF writer + reader + five-layer query | 📋 Planned |
 | **5** | Connectors: GitHub, Confluence, Notion, Jira | 📋 Planned |
-| **6** | PyPI release `pip install docforge-ai` | 📋 Planned |
+| **6** | PyPI release `pip install DOCNEST-ai` | 📋 Planned |
 | **7** | Folder → library mode (multi-document .udf) | 📋 Planned |
 | **8** | Hierarchical supervisor+worker for datasets >200MB | 📋 Planned |
 
@@ -152,7 +152,7 @@ Track detailed progress: [ROADMAP.md](ROADMAP.md)
 
 ## 🤝 Contributing
 
-**DocForge is community-first.** We are building this in the open and want contributors at every level.
+**DOCNEST is community-first.** We are building this in the open and want contributors at every level.
 
 ### Where to start
 
@@ -167,13 +167,13 @@ Track detailed progress: [ROADMAP.md](ROADMAP.md)
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for full guide.
 
-**Give us a ⭐ if DocForge solves a problem you have — it helps others find the project.**
+**Give us a ⭐ if DOCNEST solves a problem you have — it helps others find the project.**
 
 ---
 
 ## 📐 Technical Specification
 
-Full implementation spec: [SPEC_DOCFORGE_PYPI.md](docs/SPEC_DOCFORGE_PYPI.md)
+Full implementation spec: [SPEC_DOCNEST_PYPI.md](docs/SPEC_DOCNEST_PYPI.md)
 
 Covers: architecture, SOLID compliance, design patterns, interfaces, concrete classes, code snippets, test plan, dependency costs.
 
@@ -187,13 +187,13 @@ MIT — free for commercial use. See [LICENSE](LICENSE).
 
 ## 🔗 Ecosystem
 
-DocForge is the foundation of the Synapse ecosystem:
+DOCNEST is the foundation of the Synapse ecosystem:
 
 | Product | Description |
 |---|---|
-| [docforged](https://github.com/tailorgunjan93/docforged) | This library — document normalization engine |
+| [DOCNESTd](https://github.com/tailorgunjan93/DOCNESTd) | This library — document normalization engine |
 | [udf-spec](https://github.com/tailorgunjan93/udf-spec) | Open specification for the .udf format |
-| [synapse-local](https://github.com/tailorgunjan93/synapse-local) | Desktop RAG app (Tauri) powered by DocForge |
+| [synapse-local](https://github.com/tailorgunjan93/synapse-local) | Desktop RAG app (Tauri) powered by DOCNEST |
 | [udf-reader-vscode](https://github.com/tailorgunjan93/udf-reader-vscode) | VS Code extension for .udf files |
 | [synapseKB](https://github.com/tailorgunjan93/synapseKB) | Cloud knowledge platform |
 
@@ -201,6 +201,6 @@ DocForge is the foundation of the Synapse ecosystem:
 
 <div align="center">
 
-Built with ❤️ for the RAG community · [github.com/tailorgunjan93/docforged](https://github.com/tailorgunjan93/docforged)
+Built with ❤️ for the RAG community · [github.com/tailorgunjan93/DOCNESTd](https://github.com/tailorgunjan93/DOCNESTd)
 
 </div>

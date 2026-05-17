@@ -1,16 +1,16 @@
 ﻿"""
-Abstract base class for all DocForge source connectors.
+Abstract base class for all DOCNEST source connectors.
 
 Connectors fetch documents from external sources and return RawDocument
-objects that feed directly into the DocForgePipeline.
+objects that feed directly into the DOCNESTPipeline.
 
-Phase: 5  |  Spec: docs/SPEC_DOCFORGE_PYPI.md — Section 10
+Phase: 5  |  Spec: docs/SPEC_DOCNEST_PYPI.md — Section 10
 Design pattern: Open/Closed — add connectors without touching existing code.
 """
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from docforge.models import RawDocument
+from DOCNEST.models import RawDocument
 
 
 class IConnector(ABC):

@@ -1,7 +1,7 @@
 ﻿"""
 Confluence connector — fetches pages from an Atlassian Confluence space.
 
-Phase: 5  |  Spec: docs/SPEC_DOCFORGE_PYPI.md — Section 5 (Connectors)
+Phase: 5  |  Spec: docs/SPEC_DOCNEST_PYPI.md — Section 5 (Connectors)
 
 TODO (Phase 5):
     pip install atlassian-python-api
@@ -11,9 +11,9 @@ TODO (Phase 5):
 """
 
 from __future__ import annotations
-from docforge.connectors.base import IConnector
-from docforge.models import RawDocument
-from docforge.exceptions import ConnectorError
+from DOCNEST.connectors.base import IConnector
+from DOCNEST.models import RawDocument
+from DOCNEST.exceptions import ConnectorError
 
 
 class ConfluenceConnector(IConnector):

@@ -12,7 +12,7 @@ body:
     id: problem
     attributes:
       label: What problem does this solve?
-      placeholder: "As a DocForge user, I want to... so that..."
+      placeholder: "As a DOCNEST user, I want to... so that..."
     validations:
       required: true
 

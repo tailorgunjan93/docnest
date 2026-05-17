@@ -1,6 +1,6 @@
-﻿# Contributing to DocForge
+﻿# Contributing to DOCNEST
 
-First off — thank you. DocForge is being built in the open and every contribution matters.
+First off — thank you. DOCNEST is being built in the open and every contribution matters.
 
 ---
 
@@ -8,7 +8,7 @@ First off — thank you. DocForge is being built in the open and every contribut
 
 ### 🐛 Report a Bug
 Open an issue using the **Bug Report** template. Include:
-- DocForge version
+- DOCNEST version
 - Document format you were processing
 - Expected vs actual behavior
 - Minimal reproducible example if possible
@@ -34,8 +34,8 @@ Documentation PRs are always welcome. No issue required for small fixes.
 ## Development Setup
 
 ```bash
-git clone https://github.com/tailorgunjan93/docforged
-cd docforged
+git clone https://github.com/tailorgunjan93/DOCNESTd
+cd DOCNESTd
 python -m venv .venv
 source .venv/bin/activate       # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
@@ -61,17 +61,17 @@ pytest tests/ -v
 - Docstrings: Google style
 
 ```bash
-black docforge/
-ruff check docforge/
-mypy docforge/
+black DOCNEST/
+ruff check DOCNEST/
+mypy DOCNEST/
 ```
 
 ### Architecture principles (SOLID)
 - **Single Responsibility** — one class, one job. `PDFParser` only parses. `Quantizer` only quantizes.
 - **Open/Closed** — extend via new implementations, not modifications. New format = new `IParser` class.
-- **Dependency Inversion** — depend on abstractions. `DocForgePipeline` takes `IEmbedder`, not `NomicEmbedder`.
+- **Dependency Inversion** — depend on abstractions. `DOCNESTPipeline` takes `IEmbedder`, not `NomicEmbedder`.
 
-See [docs/SPEC_DOCFORGE_PYPI.md](docs/SPEC_DOCFORGE_PYPI.md) for the full design.
+See [docs/SPEC_DOCNEST_PYPI.md](docs/SPEC_DOCNEST_PYPI.md) for the full design.
 
 ### Tests
 - Every new feature needs unit tests
@@ -80,7 +80,7 @@ See [docs/SPEC_DOCFORGE_PYPI.md](docs/SPEC_DOCFORGE_PYPI.md) for the full design
 - Target coverage: 85%+ on new code
 
 ```bash
-pytest tests/ -v --cov=docforge --cov-report=term-missing
+pytest tests/ -v --cov=DOCNEST --cov-report=term-missing
 ```
 
 ---
@@ -111,20 +111,20 @@ refactor: extract quantizer to standalone module
 
 ## Adding a New Parser
 
-1. Create `docforge/parsers/yourformat.py`
+1. Create `DOCNEST/parsers/yourformat.py`
 2. Implement `IParser` abstract base class
-3. Register in `docforge/parsers/factory.py`
+3. Register in `DOCNEST/parsers/factory.py`
 4. Add test fixtures in `tests/fixtures/`
 5. Add tests in `tests/test_parsers.py`
 6. Update supported formats table in `README.md`
 
-See `docforge/parsers/pdf.py` as the reference implementation.
+See `DOCNEST/parsers/pdf.py` as the reference implementation.
 
 ---
 
 ## Adding a New Connector
 
-1. Create `docforge/connectors/yourservice.py`
+1. Create `DOCNEST/connectors/yourservice.py`
 2. Implement `IConnector` abstract base class
 3. Add integration test (mock the external API)
 4. Document required config (API token, base URL, etc.)
@@ -139,4 +139,4 @@ Be kind. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## Questions?
 
-Open a [Discussion](https://github.com/tailorgunjan93/docforged/discussions) — not an issue. Discussions are for questions, ideas, and architecture conversations.
+Open a [Discussion](https://github.com/tailorgunjan93/DOCNESTd/discussions) — not an issue. Discussions are for questions, ideas, and architecture conversations.

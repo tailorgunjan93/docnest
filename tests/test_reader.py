@@ -9,7 +9,7 @@ class TestUDFIndex:
     """TODO (Phase 4): Uncomment after UDFIndex is implemented."""
 
     # def test_load_valid_udf(self, tmp_path):
-    #     from docforge.reader import UDFIndex
+    #     from DOCNEST.reader import UDFIndex
     #     # Create a minimal .udf fixture, then load it
     #     index = UDFIndex.load("tests/fixtures/test.udf")
     #     assert index.catalogue is not None

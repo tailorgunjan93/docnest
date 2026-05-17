@@ -1,6 +1,6 @@
 ﻿# Changelog
 
-All notable changes to DocForge will be documented here.
+All notable changes to DOCNEST will be documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -14,7 +14,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - PDF, DOCX, XLSX, HTML, Markdown parsers
 - Section normalizer (`§id` assignment)
 - Table normalization to structured JSON
-- CLI: `docforge convert`
+- CLI: `DOCNEST convert`
 
 ---
 

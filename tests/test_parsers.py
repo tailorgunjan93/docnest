@@ -3,13 +3,13 @@
 Phase: 1  |  Run: pytest tests/test_parsers.py -v
 """
 import pytest
-from docforge.parsers.factory import ParserFactory
-from docforge.parsers.pdf import DoclingPDFParser
-from docforge.parsers.docx import DoclingDOCXParser
-from docforge.parsers.xlsx import ExcelParser
-from docforge.parsers.html import HTMLParser
-from docforge.parsers.md import MarkdownParser
-from docforge.exceptions import UnsupportedFormatError
+from DOCNEST.parsers.factory import ParserFactory
+from DOCNEST.parsers.pdf import DoclingPDFParser
+from DOCNEST.parsers.docx import DoclingDOCXParser
+from DOCNEST.parsers.xlsx import ExcelParser
+from DOCNEST.parsers.html import HTMLParser
+from DOCNEST.parsers.md import MarkdownParser
+from DOCNEST.exceptions import UnsupportedFormatError
 
 
 class TestParserFactory:
