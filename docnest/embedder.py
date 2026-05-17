@@ -1,44 +1,32 @@
-﻿"""
-Embedding generation — Stage 6a of the DOCNEST pipeline.
+"""
+Embedding generation — Stage 6a of the DocNest pipeline.
 
 Generates dense vector representations of section text for semantic search.
 Embeddings are computed once at ingest time and stored (quantised) in the .udf.
 
-Phase: 2  |  Spec: docs/SPEC_DOCNEST_PYPI.md — Section 10
 Design pattern: Strategy — swap embedding model without changing pipeline.
+Phase: 2  |  Spec: docs/SPEC_DOCNEST_PYPI.md — Section 10
 """
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import numpy as np
 
+from docnest.exceptions import EmbedError
+
 
 class IEmbedder(ABC):
-    """Abstract base for all embedding providers.
-
-    Implement this to add a new embedding model.
-    Register in pipeline.py or pass directly to DOCNESTPipeline.
-    """
+    """Abstract base for all embedding providers."""
 
     @abstractmethod
     def embed(self, texts: list[str]) -> np.ndarray:
-        """Embed a list of texts into float32 vectors.
-
-        Args:
-            texts: List of text strings to embed (section summaries or full text).
-
-        Returns:
-            numpy array of shape (len(texts), self.dims) — dtype float32.
-
-        Raises:
-            EmbedError: If embedding fails for any text.
-        """
+        """Embed a list of texts. Returns float32 array of shape (len(texts), dims)."""
         ...
 
     @property
     @abstractmethod
     def dims(self) -> int:
-        """Embedding dimensionality (e.g. 768 for nomic-embed-text)."""
+        """Embedding dimensionality."""
         ...
 
     @property
@@ -49,17 +37,16 @@ class IEmbedder(ABC):
 
 
 class NomicEmbedder(IEmbedder):
-    """Local embeddings using nomic-embed-text via fastembed.
+    """Local embeddings using nomic-embed-text-v1.5 via fastembed.
 
-    FREE — runs on CPU, no API key, no internet required.
+    FREE — runs on CPU, no API key, no internet required after first download.
     768 dimensions. Good quality for most RAG use cases.
 
-    TODO (Phase 2):
-        from fastembed import TextEmbedding
-        self._model = TextEmbedding("nomic-ai/nomic-embed-text-v1.5")
-        embeddings = list(self._model.embed(texts))
-        return np.array(embeddings, dtype=np.float32)
+    Install: pip install fastembed
     """
+
+    def __init__(self) -> None:
+        self._model: object | None = None  # lazy init
 
     @property
     def dims(self) -> int:
@@ -67,28 +54,57 @@ class NomicEmbedder(IEmbedder):
 
     @property
     def model_name(self) -> str:
-        return "nomic-embed-text"
+        return "nomic-ai/nomic-embed-text-v1.5"
+
+    def _get_model(self) -> object:
+        if self._model is None:
+            try:
+                from fastembed import TextEmbedding  # type: ignore[import]
+            except ImportError as exc:
+                raise EmbedError(
+                    "fastembed is not installed. Run: pip install fastembed"
+                ) from exc
+            self._model = TextEmbedding("nomic-ai/nomic-embed-text-v1.5")
+        return self._model
 
     def embed(self, texts: list[str]) -> np.ndarray:
-        # TODO (Phase 2): Implement using fastembed
-        raise NotImplementedError("NomicEmbedder not yet implemented.")
+        """Embed texts locally using fastembed.
+
+        Args:
+            texts: List of strings (section text or summaries).
+
+        Returns:
+            float32 array of shape (len(texts), 768).
+
+        Raises:
+            EmbedError: If fastembed fails or is not installed.
+        """
+        if not texts:
+            return np.empty((0, self.dims), dtype=np.float32)
+        try:
+            model = self._get_model()
+            embeddings = list(model.embed(texts))  # type: ignore[attr-defined]
+            return np.array(embeddings, dtype=np.float32)
+        except EmbedError:
+            raise
+        except Exception as exc:
+            raise EmbedError(f"NomicEmbedder failed: {exc}") from exc
 
 
 class OpenAIEmbedder(IEmbedder):
     """Cloud embeddings via OpenAI text-embedding-3-small.
 
-    Requires OPENAI_API_KEY. ~$0.002 per 100-page document.
-    1536 dimensions. Higher quality than local models.
-
-    TODO (Phase 2):
-        from openai import OpenAI
-        client = OpenAI(api_key=self.api_key)
-        response = client.embeddings.create(model="text-embedding-3-small", input=texts)
-        return np.array([e.embedding for e in response.data], dtype=np.float32)
+    Requires OPENAI_API_KEY env var or explicit api_key.
+    ~$0.002 per 100-page document. 1536 dimensions.
+    Install: pip install openai
     """
 
-    def __init__(self, api_key: str) -> None:
-        self.api_key = api_key
+    def __init__(self, api_key: str | None = None) -> None:
+        import os
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
+        if not self.api_key:
+            raise EmbedError("OpenAI API key required. Set OPENAI_API_KEY env var.")
+        self._client: object | None = None
 
     @property
     def dims(self) -> int:
@@ -98,24 +114,45 @@ class OpenAIEmbedder(IEmbedder):
     def model_name(self) -> str:
         return "text-embedding-3-small"
 
+    def _get_client(self) -> object:
+        if self._client is None:
+            try:
+                from openai import OpenAI  # type: ignore[import]
+            except ImportError as exc:
+                raise EmbedError(
+                    "openai package not installed. Run: pip install openai"
+                ) from exc
+            self._client = OpenAI(api_key=self.api_key)
+        return self._client
+
     def embed(self, texts: list[str]) -> np.ndarray:
-        # TODO (Phase 2): Implement using openai SDK
-        raise NotImplementedError("OpenAIEmbedder not yet implemented.")
+        if not texts:
+            return np.empty((0, self.dims), dtype=np.float32)
+        try:
+            client = self._get_client()
+            response = client.embeddings.create(  # type: ignore[attr-defined]
+                model="text-embedding-3-small", input=texts
+            )
+            vectors = [e.embedding for e in response.data]
+            return np.array(vectors, dtype=np.float32)
+        except EmbedError:
+            raise
+        except Exception as exc:
+            raise EmbedError(f"OpenAIEmbedder failed: {exc}") from exc
 
 
 class GoogleEmbedder(IEmbedder):
     """Cloud embeddings via Google text-embedding-004.
 
     Free tier: 1M tokens/month. 768 dimensions.
-
-    TODO (Phase 2):
-        import google.generativeai as genai
-        genai.configure(api_key=self.api_key)
-        result = genai.embed_content(model="models/text-embedding-004", content=texts)
+    Install: pip install google-generativeai
     """
 
-    def __init__(self, api_key: str) -> None:
-        self.api_key = api_key
+    def __init__(self, api_key: str | None = None) -> None:
+        import os
+        self.api_key = api_key or os.environ.get("GOOGLE_API_KEY", "")
+        if not self.api_key:
+            raise EmbedError("Google API key required. Set GOOGLE_API_KEY env var.")
 
     @property
     def dims(self) -> int:
@@ -126,5 +163,19 @@ class GoogleEmbedder(IEmbedder):
         return "text-embedding-004"
 
     def embed(self, texts: list[str]) -> np.ndarray:
-        # TODO (Phase 2): Implement using google-generativeai
-        raise NotImplementedError("GoogleEmbedder not yet implemented.")
+        if not texts:
+            return np.empty((0, self.dims), dtype=np.float32)
+        try:
+            import google.generativeai as genai  # type: ignore[import]
+            genai.configure(api_key=self.api_key)
+            vectors = []
+            for text in texts:
+                result = genai.embed_content(
+                    model="models/text-embedding-004", content=text
+                )
+                vectors.append(result["embedding"])
+            return np.array(vectors, dtype=np.float32)
+        except EmbedError:
+            raise
+        except Exception as exc:
+            raise EmbedError(f"GoogleEmbedder failed: {exc}") from exc
