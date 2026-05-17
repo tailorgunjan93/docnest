@@ -2,9 +2,12 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.wheel]
+packages = ["docnest"]
+
 [project]
-name = "docnest"
-version = "0.1.0-alpha"
+name = "docnest-ai"
+version = "0.4.0a1"
 description = "The document normalisation engine RAG has always needed"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -15,7 +18,7 @@ keywords = [
     "vector-search", "docling", "bm25"
 ]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
@@ -27,14 +30,16 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     "docling>=2.0",
+    "pymupdf>=1.24",
     "python-docx>=1.1",
     "pydantic>=2.7",
     "numpy>=1.26",
     "rank-bm25>=0.2.2",
+    "beautifulsoup4>=4.12",
+    "mistletoe>=1.3",
     "typer>=0.12",
     "rich>=13.0",
     "httpx>=0.27",
-    "cryptography>=42.0",
     "openpyxl>=3.1",
 ]
 
@@ -69,6 +74,15 @@ embeddings-google  = ["langchain-google-genai>=2.0"]
 embeddings-cohere  = ["langchain-cohere>=0.3"]
 embeddings-ollama  = ["langchain-ollama>=0.2"]
 
+# ── Vector backends (optional — install only the one you want) ─────────────────
+faiss  = ["faiss-cpu>=1.8"]          # Fast ANN search (FAISSVectorBackend)
+chroma = ["chromadb>=0.5"]           # Persistent vector store (ChromaVectorBackend)
+
+# ── OCR (optional) ─────────────────────────────────────────────────────────────
+ocr-tesseract = ["pytesseract>=0.3"]
+ocr-easyocr   = ["easyocr>=1.7"]
+ocr           = ["pytesseract>=0.3"]   # default OCR extra
+
 # ── Connectors ─────────────────────────────────────────────────────────────────
 connectors = ["PyGithub>=2.3", "atlassian-python-api>=3.41"]
 
@@ -101,17 +115,17 @@ all-providers = [
     "langchain-google-genai>=2.0",
     "langchain-mistralai>=0.2",
 ]
-all = ["docnest[quickstart,connectors]"]
+all = ["docnest-ai[quickstart,connectors,faiss,ocr]"]
 
 [project.scripts]
 docnest = "docnest.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/tailorgunjan93/docnest"
-Documentation = "https://github.com/tailorgunjan93/docnest/blob/main/docs/SPEC_DOCNEST_PYPI.md"
-Repository = "https://github.com/tailorgunjan93/docnest"
-Issues = "https://github.com/tailorgunjan93/docnest/issues"
-Changelog = "https://github.com/tailorgunjan93/docnest/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/tailorgunjan93/DOCNESTd"
+Documentation = "https://github.com/tailorgunjan93/DOCNESTd/blob/main/docs/SPEC_DOCNEST_PYPI.md"
+Repository = "https://github.com/tailorgunjan93/DOCNESTd"
+Issues = "https://github.com/tailorgunjan93/DOCNESTd/issues"
+Changelog = "https://github.com/tailorgunjan93/DOCNESTd/blob/main/CHANGELOG.md"
 
 [tool.black]
 line-length = 100
