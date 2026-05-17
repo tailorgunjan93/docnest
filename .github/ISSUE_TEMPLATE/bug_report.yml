@@ -1,0 +1,73 @@
+﻿name: Bug Report
+description: Something is not working as expected
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill this out completely so we can reproduce and fix it quickly.
+
+  - type: input
+    id: version
+    attributes:
+      label: DocForge version
+      placeholder: "e.g. 0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: document-format
+    attributes:
+      label: Document format
+      options:
+        - PDF (text-based)
+        - PDF (scanned)
+        - DOCX
+        - XLSX
+        - HTML
+        - Markdown
+        - Confluence
+        - Notion
+        - GitHub
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      placeholder: Describe the bug clearly
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Minimal code example
+      render: python
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error output / logs
+      render: shell
