@@ -85,23 +85,26 @@ Enterprise RAG market: $1.2B in 2024, projected $8.9B by 2029 (CAGR 49%). Every 
 ## 5. Functionality
 
 ### Core capabilities
-- **Parse** 10+ document formats using Docling as the backbone
+- **Parse** 6+ document formats (PDF, DOCX, XLSX, HTML, Markdown, plain text)
 - **Normalize** to `§section` hierarchy — headings become navigable IDs
 - **Preserve tables** as structured `{caption, headers, rows[]}` JSON — never flattened
 - **Summarize** each section in one sentence at ingest time
 - **Compute intelligence** — document summary, insights, key_numbers extracted by LLM once
-- **Embed** sections using local (nomic-embed-text) or cloud models
-- **Quantize** embeddings to float16 / int8 / binary — 2–32× size reduction
-- **Write** portable `.udf` zip file or encrypted `.udfx` for local storage
+- **Embed** sections using 10+ models via LangChain (HuggingFace, OpenAI, Cohere, etc.)
+- **Quantize** embeddings to float32 / float16 / int8 / binary — up to 32× size reduction
+- **Write** portable `.udf` zip file with binary `embeddings.bin` blob (87% smaller than base64)
 - **Query** with five-layer resolution: pre-computed → BM25 → cosine → section LLM → full doc
-- **CLI** for direct terminal usage
-- **Connector framework** for GitHub, Confluence, Notion, Jira
+- **Organisational metadata** — `owner`, `department`, `tags`, `access_roles` stored in manifest
+- **HTML viewer** — `docnest view` generates self-contained browsable HTML
+- **Library mode** — `library.json` multi-document index for cross-document search
+- **CLI** for direct terminal usage with `--fast` mode (skip LLM, embeddings only)
+- **Pluggable providers** — swap LLM, embedder, vector backend, search, storage, OCR via interface
 
 ### Input formats
-PDF, DOCX, PPTX, XLSX, HTML, Markdown, Confluence pages, Notion pages, GitHub repos
+PDF (text + scanned), DOCX, XLSX, HTML, Markdown
 
 ### Output formats
-`.udf` (portable), `.udfx` (encrypted local), raw JSON (for custom pipelines)
+`.udf` (portable zip archive), `library.json` (multi-document index), HTML (viewer)
 
 ---
 
@@ -178,43 +181,52 @@ graph TD
 
 **Physical layout:**
 ```
-DOCNEST/
-├── DOCNEST/
+DOCNESTd/
+├── docnest/
 │   ├── __init__.py
-│   ├── models.py           # Pydantic models — Section, Document, Catalogue
-│   ├── exceptions.py       # DOCNESTError, ParseError, EmbedError, SizeLimitError
-│   ├── cli.py              # typer CLI entry point
+│   ├── models.py           # Pydantic models — Section, Document, Catalogue, DocMeta
+│   ├── exceptions.py       # DocNestError, ParseError, EmbedError, SizeLimitError
+│   ├── cli.py              # typer CLI entry point (docnest convert/query/inspect/view/library)
 │   ├── parsers/
-│   │   ├── base.py         # IParser abstract base class
+│   │   ├── base.py         # IParser abstract base class + _make_doc_id (CamelCase-aware)
 │   │   ├── factory.py      # ParserFactory — returns correct parser for format
-│   │   ├── pdf.py          # DoclingPDFParser
+│   │   ├── pdf.py          # DoclingPDFParser (primary)
+│   │   ├── pymupdf_pdf.py  # PyMuPDFParser (fast fallback)
 │   │   ├── docx.py         # DoclingDOCXParser
 │   │   ├── xlsx.py         # ExcelParser (openpyxl)
 │   │   ├── html.py         # HTMLParser (BeautifulSoup)
-│   │   └── md.py           # MarkdownParser
+│   │   └── md.py           # MarkdownParser (mistletoe)
+│   ├── providers/
+│   │   ├── __init__.py     # exports all interfaces + factories
+│   │   ├── llm.py          # ILLMProvider, LangChainLLMProvider, get_llm_provider
+│   │   ├── embedder.py     # IEmbedder, LangChainEmbedder, get_embedder
+│   │   ├── vector.py       # IVectorBackend, NumpyVectorBackend, FAISSVectorBackend,
+│   │   │                   #   ChromaVectorBackend, get_vector_backend
+│   │   ├── search.py       # ISearchProvider, BM25SearchProvider, TFIDFSearchProvider,
+│   │   │                   #   KeywordSearchProvider, get_search_provider
+│   │   ├── storage.py      # IStorageBackend, ZipStorageBackend, DirectoryStorageBackend,
+│   │   │                   #   get_storage_backend
+│   │   └── ocr.py          # IOCRProvider, NullOCRProvider, TesseractOCRProvider,
+│   │                       #   EasyOCRProvider, get_ocr_provider
 │   ├── normalizer.py       # SectionNormalizer — assigns §ids, cleans text
 │   ├── intelligence.py     # IntelligenceEngine — LLM calls for summary/insights
-│   ├── embedder.py         # EmbedderStrategy + concrete implementations
-│   ├── quantizer.py        # Quantizer — float16 / int8 / binary
-│   ├── writer.py           # UDFWriter — creates .udf zip
-│   ├── reader.py           # UDFIndex — load and query .udf files
-│   ├── connectors/
-│   │   ├── base.py         # IConnector abstract base class
-│   │   ├── github.py       # GitHubConnector
-│   │   ├── confluence.py   # ConfluenceConnector
-│   │   └── notion.py       # NotionConnector
-│   └── pipeline.py         # DOCNESTPipeline — orchestrates all stages
+│   ├── quantizer.py        # Quantizer — float32 / float16 / int8 / binary
+│   ├── writer.py           # UDFWriter — creates .udf zip (+ embeddings.bin binary blob)
+│   ├── reader.py           # UDFReader — load and query .udf files (five-layer engine)
+│   ├── library.py          # Library layer — library.json multi-document index
+│   ├── viewer.py           # HTML viewer — generates self-contained HTML page
+│   └── pipeline.py         # DocNestPipeline — orchestrates all stages
 ├── tests/
-│   ├── fixtures/           # sample PDFs, DOCX, XLSX for tests
+│   ├── fixtures/           # sample PDFs, DOCX, XLSX, UDF files for tests
 │   ├── test_parsers.py
 │   ├── test_normalizer.py
 │   ├── test_intelligence.py
-│   ├── test_embedder.py
+│   ├── test_vector_backends.py
 │   ├── test_writer.py
 │   ├── test_reader.py
 │   └── test_pipeline.py
 ├── docs/
-│   └── spec.md
+│   └── SPEC_DOCNEST_PYPI.md
 ├── pyproject.toml
 └── README.md
 ```
@@ -281,9 +293,9 @@ sequenceDiagram
 ## 10. Interfaces & Concrete Classes
 
 ```python
-# DOCNEST/parsers/base.py
+# docnest/parsers/base.py
 from abc import ABC, abstractmethod
-from DOCNEST.models import RawDocument
+from docnest.models import RawDocument
 
 class IParser(ABC):
     """Converts a raw file into a structured RawDocument."""
@@ -299,16 +311,16 @@ class IParser(ABC):
         ...
 
 # Concrete implementations
-class DoclingPDFParser(IParser): ...      # PDF (text + scanned via OCR)
+class DoclingPDFParser(IParser): ...      # PDF (text + scanned via OCR) — primary
+class PyMuPDFParser(IParser): ...         # PDF fast fallback (PyMuPDF)
 class DoclingDOCXParser(IParser): ...     # Word documents
-class DoclingPPTXParser(IParser): ...     # PowerPoint
 class ExcelParser(IParser): ...           # XLSX via openpyxl
 class HTMLParser(IParser): ...            # HTML via BeautifulSoup
-class MarkdownParser(IParser): ...        # Markdown via python-markdown
+class MarkdownParser(IParser): ...        # Markdown via mistletoe
 ```
 
 ```python
-# DOCNEST/embedder.py
+# docnest/providers/embedder.py
 from abc import ABC, abstractmethod
 import numpy as np
 
@@ -326,10 +338,63 @@ class IEmbedder(ABC):
         """Embedding dimensions."""
         ...
 
+# Concrete: LangChainEmbedder wraps any LangChain embeddings model
+# e.g. get_embedder("huggingface/all-MiniLM-L6-v2")
+#      get_embedder("openai/text-embedding-3-small", api_key="sk-...")
+#      get_embedder("cohere/embed-english-v3.0", api_key="...")
+```
+
+```python
+# docnest/providers/vector.py
+from abc import ABC, abstractmethod
+import numpy as np
+
+class IVectorBackend(ABC):
+    """Pluggable vector similarity search backend."""
+
+    @abstractmethod
+    def build(self, ids: list[str], matrix: np.ndarray) -> None:
+        """Index the embedding matrix. Called once after embeddings are loaded."""
+        ...
+
+    @abstractmethod
+    def search(self, query: np.ndarray, k: int = 5) -> list[tuple[str, float]]:
+        """Return up to k (section_id, cosine_score) pairs, highest first."""
+        ...
+
+    @abstractmethod
+    def is_available(self) -> bool:
+        """Return True if the required library is installed."""
+        ...
+
+    @abstractmethod
+    def is_ready(self) -> bool:
+        """Return True if build() has been called and the index is populated."""
+        ...
+
 # Concrete implementations
-class NomicEmbedder(IEmbedder): ...       # nomic-embed-text via fastembed (local)
-class OpenAIEmbedder(IEmbedder): ...      # text-embedding-3-small
-class GoogleEmbedder(IEmbedder): ...      # text-embedding-004
+class NumpyVectorBackend(IVectorBackend): ...   # default, zero extra deps
+class FAISSVectorBackend(IVectorBackend): ...   # faiss-cpu, fast ANN, optional save/load
+class ChromaVectorBackend(IVectorBackend): ...  # chromadb, persistent cross-session
+
+# Factory
+def get_vector_backend(name: str, **kwargs) -> IVectorBackend: ...
+# name: "numpy" | "faiss" | "chroma"
+```
+
+```python
+# docnest/providers/llm.py
+from abc import ABC, abstractmethod
+
+class ILLMProvider(ABC):
+    @abstractmethod
+    def complete(self, prompt: str, **kwargs) -> str: ...
+
+# LangChainLLMProvider wraps any LangChain chat model
+# get_llm_provider("groq", model="llama-3.3-70b-versatile", api_key="gsk_...")
+# get_llm_provider("openai", model="gpt-4o-mini", api_key="sk-...")
+# get_llm_provider("ollama", model="llama3.2")
+# get_llm_provider("anthropic", model="claude-3-haiku-20240307", api_key="...")
 ```
 
 ```python
@@ -385,17 +450,21 @@ class Catalogue(BaseModel):
 ### Tech Stack
 | Component | Library | Version | Purpose |
 |---|---|---|---|
-| Document parsing | `docling` | `>=2.0` | PDF, DOCX, PPTX parsing |
+| Document parsing | `docling` | `>=2.0` | PDF, DOCX parsing + OCR |
+| PDF fallback | `pymupdf` | `>=1.24` | Fast PDF text extraction |
 | Excel parsing | `openpyxl` | `>=3.1` | XLSX with structure |
-| LLM calls | `litellm` | `>=1.40` | Unified OpenAI/Anthropic/Ollama |
-| Local embeddings | `fastembed` | `>=0.3` | nomic-embed-text locally |
-| Cloud embeddings | `openai` | `>=1.30` | text-embedding-3-small |
+| LLM + embeddings | `langchain` | `>=0.2` | Unified 14+ LLM + 10+ embedder providers |
+| LLM provider SDKs | `groq`, `openai`, `anthropic`, … | varies | Per-provider API client |
 | Data models | `pydantic` | `>=2.7` | Type-safe models |
 | CLI | `typer` | `>=0.12` | Command-line interface |
 | CLI display | `rich` | `>=13.0` | Progress bars, tables |
 | BM25 | `rank-bm25` | `>=0.2.2` | Keyword search index |
 | Vector math | `numpy` | `>=1.26` | Cosine similarity, quantization |
-| Encryption | `cryptography` | `>=42.0` | AES-256-GCM for .udfx |
+| Vector ANN (opt.) | `faiss-cpu` | `>=1.8` | Fast ANN search (FAISSVectorBackend) |
+| Vector DB (opt.) | `chromadb` | `>=0.5` | Persistent vector store (ChromaVectorBackend) |
+| OCR (opt.) | `pytesseract` / `easyocr` | varies | Scanned document OCR |
+| HTML parsing | `beautifulsoup4` | `>=4.12` | HTML heading hierarchy |
+| Markdown | `mistletoe` | `>=1.3` | Markdown AST parsing |
 | Testing | `pytest` | `>=8.0` | Test framework |
 | HTTP (connectors) | `httpx` | `>=0.27` | Async HTTP for connectors |
 
@@ -404,13 +473,13 @@ class Catalogue(BaseModel):
 ```python
 # DOCNEST/pipeline.py
 from pathlib import Path
-from DOCNEST.parsers.factory import ParserFactory
-from DOCNEST.normalizer import SectionNormalizer
-from DOCNEST.intelligence import IntelligenceEngine
-from DOCNEST.embedder import IEmbedder, NomicEmbedder
-from DOCNEST.quantizer import Quantizer
-from DOCNEST.writer import UDFWriter
-from DOCNEST.models import Document
+from docnest.parsers.factory import ParserFactory
+from docnest.normalizer import SectionNormalizer
+from docnest.intelligence import IntelligenceEngine
+from docnest.embedder import IEmbedder, NomicEmbedder
+from docnest.quantizer import Quantizer
+from docnest.writer import UDFWriter
+from docnest.models import Document
 
 class DOCNESTPipeline:
     """
@@ -523,41 +592,55 @@ class Quantizer:
 
 ### For end users
 ```bash
-pip install DOCNEST-ai
+pip install docnest-ai
 
 # Verify
-DOCNEST --version
+docnest --version
 
-# First conversion (uses Ollama locally)
+# With Ollama (local, free)
 # 1. Install Ollama: https://ollama.ai
 ollama pull llama3.2
 ollama pull nomic-embed-text
 
 # 2. Convert a document
-DOCNEST convert report.pdf
+docnest convert report.pdf --llm-provider ollama --llm-model llama3.2
 
 # 3. Query it
-DOCNEST query report.udf "What are the key findings?"
+docnest query report.udf "What are the key findings?"
+
+# With Groq (cloud, fast, free tier)
+docnest convert report.pdf \
+  --llm-provider groq \
+  --llm-model llama-3.3-70b-versatile \
+  --api-key gsk_...
+
+# Fast mode (no LLM — embeddings only)
+docnest convert report.pdf --fast
+
+# With organizational metadata
+docnest convert report.pdf \
+  --owner "Alice Smith" \
+  --department "Finance" \
+  --tags "q4,2024"
 ```
 
-### For developers integrating DOCNEST
+### For developers integrating docnest
 ```bash
-pip install DOCNEST-ai
+pip install docnest-ai
 
-# With cloud LLM (no Ollama needed)
-pip install DOCNEST-ai[openai]
+# Optional vector backends
+pip install docnest-ai[faiss]    # FAISS ANN search
+pip install docnest-ai[chroma]   # ChromaDB persistent store
+pip install docnest-ai[ocr]      # Tesseract OCR for scanned PDFs
 
-# With all connectors
-pip install DOCNEST-ai[connectors]
-
-# Full install
-pip install DOCNEST-ai[all]
+# Full install with all optional deps
+pip install docnest-ai[all]
 ```
 
 ### For contributors
 ```bash
 git clone https://github.com/tailorgunjan93/DOCNESTd
-cd DOCNEST
+cd DOCNESTd
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 pytest tests/ -v
@@ -586,16 +669,17 @@ pytest tests/ -v
 | Provider | Model | Cost per 100-page doc |
 |---|---|---|
 | Ollama | llama3.2 | **Free** (local compute) |
-| Groq | llama3-70b | ~$0.01 |
+| Groq | llama-3.3-70b-versatile | ~$0.01 |
 | OpenAI | gpt-4o-mini | ~$0.05 |
-| Anthropic | claude-haiku | ~$0.03 |
-| Google | gemini-flash | ~$0.01 |
+| Anthropic | claude-3-haiku-20240307 | ~$0.03 |
+| Google | gemini-1.5-flash | ~$0.01 |
 
 ### Embedding costs
 | Provider | Model | Cost per 100-page doc |
 |---|---|---|
-| Ollama / fastembed | nomic-embed-text | **Free** |
+| HuggingFace (local) | all-MiniLM-L6-v2 | **Free** |
 | OpenAI | text-embedding-3-small | ~$0.002 |
+| Cohere | embed-english-v3.0 | ~$0.001 |
 | Google | text-embedding-004 | Free tier (1M tokens/month) |
 
 ---
@@ -606,8 +690,8 @@ pytest tests/ -v
 ```python
 # tests/test_parsers.py
 import pytest
-from DOCNEST.parsers.factory import ParserFactory
-from DOCNEST.parsers.pdf import DoclingPDFParser
+from docnest.parsers.factory import ParserFactory
+from docnest.parsers.pdf import DoclingPDFParser
 
 class TestParserFactory:
     def test_returns_pdf_parser_for_pdf(self):
@@ -637,8 +721,8 @@ class TestPDFParser:
 
 ```python
 # tests/test_normalizer.py
-from DOCNEST.normalizer import SectionNormalizer
-from DOCNEST.models import RawDocument, Section
+from docnest.normalizer import SectionNormalizer
+from docnest.models import RawDocument, Section
 
 class TestSectionNormalizer:
     def test_assigns_section_ids(self):
@@ -659,7 +743,7 @@ class TestSectionNormalizer:
 ```python
 # tests/test_quantizer.py
 import numpy as np
-from DOCNEST.quantizer import Quantizer
+from docnest.quantizer import Quantizer
 
 class TestQuantizer:
     def test_float16_roundtrip(self):
@@ -691,7 +775,7 @@ class TestDOCNESTPipeline:
         pipeline = DOCNESTPipeline()
         out = pipeline.convert(str(fixtures_dir / "reports/"),
                                output=str(tmp_path / "library.udf"))
-        from DOCNEST.reader import UDFIndex
+        from docnest.reader import UDFIndex
         index = UDFIndex.load(out)
         assert index.catalogue.doc_count > 1
 ```

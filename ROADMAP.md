@@ -1,72 +1,112 @@
-﻿# DOCNEST Roadmap
+# DOCNEST Roadmap
 
 > Living document — updated as the project evolves.
 > Vote on features by reacting 👍 to the linked issue.
 
 ---
 
-## Current Status: Pre-Alpha
+## Current Status: Alpha
 
-The architecture is fully designed. Implementation starts now.
+Core pipeline, five-layer query engine, HTML viewer, library mode, and pluggable vector/search/storage/LLM/embedder/OCR providers are all implemented and working.
+
+Next milestone: PyPI release (`pip install docnest-ai`) with 85%+ test coverage.
+
 See [SPEC_DOCNEST_PYPI.md](docs/SPEC_DOCNEST_PYPI.md) for the complete technical spec.
 
 ---
 
-## Phase 1 — Core Parser & Normalizer
-**Target: v0.1.0**
+## Phase 1 — Core Parser & Normalizer ✅ Done
+**Shipped: v0.1.0**
 
-- [ ] `IParser` abstract base class + `ParserFactory`
-- [ ] `DoclingPDFParser` — PDF (text + scanned OCR)
-- [ ] `DoclingDOCXParser` — Word documents
-- [ ] `ExcelParser` — XLSX with full table structure
-- [ ] `HTMLParser` — HTML with heading hierarchy
-- [ ] `MarkdownParser` — Markdown
-- [ ] `SectionNormalizer` — assigns `§id` to every heading
-- [ ] Table normalization — `{ caption, headers, rows[] }` JSON
-- [ ] `RawDocument` and `Section` Pydantic models
-- [ ] CLI: `DOCNEST convert report.pdf`
-
----
-
-## Phase 2 — Embedding + Quantization
-**Target: v0.2.0**
-
-- [ ] `IEmbedder` interface
-- [ ] `NomicEmbedder` — `nomic-embed-text` via fastembed (local, free)
-- [ ] `OpenAIEmbedder` — `text-embedding-3-small`
-- [ ] `GoogleEmbedder` — `text-embedding-004`
-- [ ] `Quantizer` — float32 / float16 / int8 / binary
-- [ ] BM25 keyword index builder (`rank-bm25`)
-- [ ] CLI: `DOCNEST convert --embedding-model nomic-embed-text --quantization float16`
+- [x] `IParser` abstract base class + `ParserFactory`
+- [x] `DoclingPDFParser` — PDF (text + scanned OCR via Docling)
+- [x] `PyMuPDFParser` — fast fallback PDF parser
+- [x] `DoclingDOCXParser` — Word documents
+- [x] `ExcelParser` — XLSX with full table structure
+- [x] `HTMLParser` — HTML with h1–h6 heading hierarchy
+- [x] `MarkdownParser` — ATX and Setext headings
+- [x] `SectionNormalizer` — assigns `§id` to every heading
+- [x] Table normalization — `{ caption, headers, rows[] }` JSON
+- [x] `RawDocument` and `Section` Pydantic models
+- [x] CLI: `docnest convert report.pdf`
+- [x] CamelCase filename normalization (`GunjanTailor.pdf` → `gunjan-tailor`)
 
 ---
 
-## Phase 3 — Intelligence Engine
-**Target: v0.3.0**
+## Phase 2 — Embedding + Quantization ✅ Done
+**Shipped: v0.1.0 → v0.2.0**
 
-- [ ] `IntelligenceEngine` — LLM-powered enrichment via LiteLLM
-- [ ] Section summarization (one sentence per section)
-- [ ] Document-level summary (three sentences)
-- [ ] `insights[]` extraction — 3-5 non-obvious findings
-- [ ] `key_numbers[]` extraction — metrics with `§citation`
-- [ ] Ollama local LLM support
-- [ ] OpenAI / Anthropic / Groq / Google support
-- [ ] CLI: `DOCNEST convert --llm-provider ollama --llm-model llama3.2`
+- [x] `IEmbedder` interface
+- [x] 10+ embedding providers via LangChain (HuggingFace, OpenAI, Cohere, Google, etc.)
+- [x] `Quantizer` — float32 / float16 / int8 / binary
+- [x] BM25 keyword index builder
+- [x] `embeddings.bin` binary blob format (~87% smaller than base64)
+- [x] Lazy embedding loading (matrix decoded only on first search)
+- [x] Smart ZIP compression (DEFLATE-9 JSON, DEFLATE-1 binary, Store for images)
+- [x] CLI: `docnest convert --embedding-model huggingface/all-MiniLM-L6-v2 --quantization float16`
 
 ---
 
-## Phase 4 — UDF Writer + Reader + Five-Layer Query
-**Target: v0.4.0**
+## Phase 3 — Intelligence Engine ✅ Done
+**Shipped: v0.1.0**
 
-- [ ] `UDFWriter` — produces `.udf` zip file
-- [ ] `UDFIndex` — loads `.udf`, five-layer query resolution
-- [ ] Layer 0: pre-computed answer matching
-- [ ] Layer 1: BM25 + cosine hybrid search
-- [ ] Layer 2: section-scoped LLM
-- [ ] Layer 3: multi-section synthesis
-- [ ] Layer 4: full document fallback
-- [ ] CLI: `DOCNEST query report.udf "What are the key risks?"`
-- [ ] `.udf.chat` sidecar read/write
+- [x] `IntelligenceEngine` — LLM-powered enrichment via LangChain
+- [x] Section summarization (one sentence per section)
+- [x] Document-level summary (three sentences)
+- [x] `insights[]` extraction — 3–5 non-obvious findings
+- [x] `key_numbers[]` extraction — metrics with `§citation`
+- [x] Ollama local LLM support
+- [x] 14+ LLM providers: OpenAI, Anthropic, Groq, Google, Ollama, Cohere, …
+- [x] `--fast` mode: embeddings only, skip LLM stages
+- [x] CLI: `docnest convert --llm-provider groq --llm-model llama-3.3-70b-versatile`
+
+---
+
+## Phase 4 — UDF Writer + Reader + Five-Layer Query ✅ Done
+**Shipped: v0.1.0**
+
+- [x] `UDFWriter` — produces `.udf` ZIP archive
+- [x] `UDFReader` — loads `.udf`, five-layer query resolution
+- [x] Layer 0: pre-computed answer matching (summary, insights, key_numbers)
+- [x] Layer 1: BM25 + cosine hybrid search → §section navigation
+- [x] Layer 2: section-scoped LLM (~300 tokens)
+- [x] Layer 3: multi-section synthesis (~900 tokens)
+- [x] Layer 4: full document fallback
+- [x] CLI: `docnest query report.udf "What are the key risks?"`
+- [x] `docnest inspect report.udf`
+- [x] Pluggable vector backends: `numpy`, `faiss`, `chroma`
+- [x] Pluggable search providers: `bm25`, `tfidf`, `keyword`
+- [x] Pluggable storage backends: `zip`, `dir`
+
+---
+
+## Phase 4b — Organisational Metadata + DocMeta ✅ Done
+**Shipped: v0.2.0**
+
+- [x] `owner`, `department`, `tags`, `access_roles`, `version`, `last_updated` in `manifest.json`
+- [x] CLI flags: `--owner`, `--department`, `--tags`, `--access-roles`
+- [x] DocMeta surfaced in `docnest inspect` and HTML viewer
+
+---
+
+## Phase 7 — Library Mode ✅ Done
+**Shipped: v0.3.0**
+
+- [x] `library.json` multi-document index
+- [x] `keywords_bag` pre-filter for fast cross-document search
+- [x] CLI: `docnest library init / add / list / search / remove`
+- [x] Cross-document BM25 pre-filter → per-document cosine re-rank
+
+---
+
+## Phase 7b — HTML Viewer ✅ Done
+**Shipped: v0.3.0**
+
+- [x] `docnest view <file.udf>` generates self-contained HTML
+- [x] Sidebar table of contents with Intersection Observer scroll-sync
+- [x] Section hierarchy, table rendering, keyword badges
+- [x] Metadata bar: owner, department, model, quantization, date
+- [x] `--out <file.html>` flag
 
 ---
 
@@ -78,41 +118,32 @@ See [SPEC_DOCNEST_PYPI.md](docs/SPEC_DOCNEST_PYPI.md) for the complete technical
 - [ ] `ConfluenceConnector` — spaces, pages, children
 - [ ] `NotionConnector` — pages, databases
 - [ ] `JiraConnector` — projects, issues, epics
-- [ ] CLI: `DOCNEST sync github --repo org/repo --token $TOKEN`
+- [ ] `SharePointConnector` — document libraries
+- [ ] CLI: `docnest sync github --repo org/repo --token $TOKEN`
 
 ---
 
 ## Phase 6 — PyPI Release
 **Target: v1.0.0**
 
-- [ ] `pip install DOCNEST-ai`
+- [ ] `pip install docnest-ai`
 - [ ] 85%+ test coverage
 - [ ] Full type annotations + mypy passing
 - [ ] API stable — semver guaranteed from 1.0.0
-- [ ] Comprehensive docs at github.com/tailorgunjan93/DOCNESTd/blob/main/docs/SPEC_DOCNEST_PYPI.md
+- [ ] Comprehensive docs site
 - [ ] Example notebooks (Jupyter)
-- [ ] Docker image: `ghcr.io/tailorgunjan93/DOCNEST:latest`
-
----
-
-## Phase 7 — Library Mode (Folder → Single .udf)
-**Target: v1.1.0**
-
-- [ ] `DOCNEST convert ./folder/ --output library.udf`
-- [ ] `library_catalogue.json` unified cross-document index
-- [ ] Worker centroid embeddings for hierarchical routing
-- [ ] 200MB size guard with `--split` auto-sharding
-- [ ] Cross-document query resolution
+- [ ] Docker image: `ghcr.io/tailorgunjan93/docnest:latest`
 
 ---
 
 ## Phase 8 — Hierarchical Supervisor+Worker
 **Target: v1.2.0**
 
-- [ ] Auto-shard datasets > 200MB into supervisor + workers
+- [ ] Auto-shard datasets > 200MB into supervisor + worker archives
 - [ ] Supervisor routing via centroid cosine similarity
 - [ ] `--shard-by topic | date | folder` strategies
-- [ ] Reader opens supervisor.udf transparently
+- [ ] Reader opens `supervisor.udf` transparently
+- [ ] Incremental re-indexing (only changed sections re-embedded)
 
 ---
 
@@ -120,16 +151,17 @@ See [SPEC_DOCNEST_PYPI.md](docs/SPEC_DOCNEST_PYPI.md) for the complete technical
 
 These are not committed — open a Discussion to vote/discuss:
 
-- [ ] PPTX parser (PowerPoint)
+- [ ] PPTX parser (PowerPoint via Docling)
 - [ ] EPUB parser (ebooks)
 - [ ] RST parser (Sphinx docs)
-- [ ] Audio transcript ingestion (Whisper)
+- [ ] Audio transcript ingestion (Whisper → UDF)
 - [ ] Azure DevOps connector
 - [ ] Linear connector
 - [ ] Google Drive connector
 - [ ] Real-time Confluence webhook sync
-- [ ] Incremental re-indexing (only changed sections re-embedded)
 - [ ] `.udf` diff — compare two versions of a document
+- [ ] Qdrant / Weaviate / Pinecone vector backend plugins
+- [ ] `.udf.chat` sidecar for conversation history
 
 ---
 

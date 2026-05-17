@@ -36,3 +36,5 @@ Closes #<!-- issue number -->
 - [ ] `pytest` all tests pass
 - [ ] New functions have docstrings and type hints
 - [ ] ROADMAP.md updated if relevant
+- [ ] If adding a new provider: exported from `docnest/providers/__init__.py`
+- [ ] If changing `.udf` format: update `udf-spec` accordingly

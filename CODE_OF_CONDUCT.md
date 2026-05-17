@@ -21,7 +21,7 @@ We are committed to making participation in the DOCNEST community a welcoming ex
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by opening a private issue or emailing conduct@github.com/tailorgunjan93/DOCNESTd. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by opening a private issue on the [DOCNESTd repository](https://github.com/tailorgunjan93/DOCNESTd/issues) or emailing the maintainer directly. All complaints will be reviewed and investigated promptly and fairly.
 
 ## Attribution
 
