@@ -10,8 +10,8 @@
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)](https://python.org)
 [![PyPI](https://img.shields.io/pypi/v/docnest-ai?color=green)](https://pypi.org/project/docnest-ai)
 [![Status](https://img.shields.io/badge/status-alpha-yellow)]()
-[![Stars](https://img.shields.io/github/stars/tailorgunjan93/DOCNESTd?style=social)](https://github.com/tailorgunjan93/DOCNESTd)
-[![Contributors](https://img.shields.io/github/contributors/tailorgunjan93/DOCNESTd)](https://github.com/tailorgunjan93/DOCNESTd/graphs/contributors)
+[![Stars](https://img.shields.io/github/stars/tailorgunjan93/docnest?style=social)](https://github.com/tailorgunjan93/docnest)
+[![Contributors](https://img.shields.io/github/contributors/tailorgunjan93/docnest)](https://github.com/tailorgunjan93/docnest/graphs/contributors)
 
 *Parse any document. Understand its structure. Build RAG that actually works.*
 
@@ -527,7 +527,7 @@ MIT — free for commercial use. See [LICENSE](LICENSE).
 
 | Product | Description |
 |---|---|
-| [DOCNESTd](https://github.com/tailorgunjan93/DOCNESTd) | This library — document normalization engine |
+| [docnest](https://github.com/tailorgunjan93/docnest) | This library — document normalization engine |
 | [udf-spec](https://github.com/tailorgunjan93/udf-spec) | Open specification for the `.udf` format |
 | [synapse-local](https://github.com/tailorgunjan93/synapse-local) | Desktop RAG app (Tauri) powered by DOCNEST |
 | [udf-reader-vscode](https://github.com/tailorgunjan93/udf-reader-vscode) | VS Code extension for `.udf` files |
@@ -536,6 +536,6 @@ MIT — free for commercial use. See [LICENSE](LICENSE).
 
 <div align="center">
 
-Built with ❤️ for the RAG community · [github.com/tailorgunjan93/DOCNESTd](https://github.com/tailorgunjan93/DOCNESTd)
+Built with ❤️ for the RAG community · [github.com/tailorgunjan93/docnest](https://github.com/tailorgunjan93/docnest)
 
 </div>
