@@ -6,9 +6,11 @@
 
 **The document normalization engine RAG has always needed.**
 
+[![CI](https://github.com/tailorgunjan93/docnest/actions/workflows/ci.yml/badge.svg)](https://github.com/tailorgunjan93/docnest/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)](https://python.org)
 [![PyPI](https://img.shields.io/pypi/v/docnest-ai?color=green)](https://pypi.org/project/docnest-ai)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/docnest-ai?color=blue)](https://pypi.org/project/docnest-ai)
 [![Status](https://img.shields.io/badge/status-alpha-yellow)]()
 [![Stars](https://img.shields.io/github/stars/tailorgunjan93/docnest?style=social)](https://github.com/tailorgunjan93/docnest)
 [![Contributors](https://img.shields.io/github/contributors/tailorgunjan93/docnest)](https://github.com/tailorgunjan93/docnest/graphs/contributors)
@@ -48,6 +50,35 @@ What gets silently destroyed:
 
 **The LLM receives noise and returns approximate answers.** This is not a retrieval problem — it is an ingestion problem.
 
+### See the difference
+
+Take a financial report with a revenue table. Here is what each approach gives your LLM:
+
+**❌ Blind chunking (LangChain / LlamaIndex default)**
+```
+chunk_1: "45.2%  Q3  Europe  38.1%  Q2  Europe  41.7%  Q3"
+chunk_2: "Asia   29.3%  Q2  Asia  Americas  52.1%  Q3  Ame"
+```
+The LLM has numbers. It has no idea what they mean.
+
+**✅ DOCNEST**
+```json
+{
+  "section": "§4.2 Revenue by Region",
+  "table": {
+    "caption": "Quarterly revenue breakdown by region",
+    "headers": ["Region", "Q2 Revenue", "Q3 Revenue", "Change"],
+    "rows": [
+      ["Europe",   "38.1%", "45.2%", "+7.1pp"],
+      ["Asia",     "29.3%", "41.7%", "+12.4pp"],
+      ["Americas", "n/a",   "52.1%", "—"]
+    ]
+  },
+  "summary": "Q3 revenue grew across all regions, led by Asia (+12.4pp)."
+}
+```
+The LLM knows exactly what the numbers mean, where they came from, and how they relate.
+
 ---
 
 ## ✨ Why DOCNEST
@@ -55,6 +86,37 @@ What gets silently destroyed:
 DOCNEST reads the *structure* of a document before touching the content. Every heading becomes a navigable `§section`. Every table is preserved as `{ caption, headers, rows[] }`. Every section gets a one-sentence summary, a keyword index, and a quantized embedding — computed once at ingest, used forever.
 
 The output is a `.udf` file — a self-contained portable knowledge base you can share by email, copy to USB, or upload to S3.
+
+---
+
+## ⚡ Try it in 60 seconds
+
+```bash
+pip install docnest-ai pymupdf
+```
+
+```python
+from docnest.parsers.pymupdf_pdf import PyMuPDFParser
+from docnest.normalizer import SectionNormaliser
+from docnest.writer import UDFWriter
+from docnest.reader import UDFIndex
+
+# Parse → normalise → save (no LLM, no API key needed)
+raw = PyMuPDFParser().parse("your-document.pdf")
+doc = SectionNormaliser().normalise(raw)
+UDFWriter().write(doc, "my-doc.udf")
+
+# Query
+idx = UDFIndex.load("my-doc.udf")
+result = idx.query(
+    "What was Q3 revenue?",
+    llm_provider="groq",
+    llm_model="llama-3.3-70b-versatile",
+    llm_api_key="gsk_...",   # free at console.groq.com
+)
+print(result.answer)      # "Q3 revenue was $38M, up 22% YoY."
+print(result.layer_used)  # 1 — answered from index, 0 LLM tokens
+```
 
 ---
 
@@ -466,6 +528,26 @@ idx = UDFIndex.load("report.udf", vector="chroma",             # ChromaDB
 | `"bm25"` | BM25Okapi — best keyword recall |
 | `"tfidf"` | TF-IDF — good fallback |
 | `"keyword"` | Simple term overlap — zero deps |
+
+---
+
+## 🧪 Accuracy Benchmark
+
+Tested against a 500-page open-source nutrition textbook using PyMuPDF parser + Groq `llama-3.3-70b-versatile`. 25 questions across 5 difficulty tiers — no fine-tuning, no re-ranking, out of the box:
+
+| Tier | Questions | Result |
+|---|---|---|
+| Basic facts (calories, macronutrients) | 5 | ✅ 5/5 |
+| Macronutrient detail (fiber, glycemic index) | 5 | ✅ 5/5 |
+| Micronutrients (vitamins, minerals) | 5 | ✅ 4/5 |
+| Hard synthesis (BMR, omega-3, antioxidants) | 5 | ✅ 5/5 |
+| Edge cases (hallucination, tables, out-of-scope) | 5 | ✅ 5/5 |
+| **Total** | **25** | **24/25 (96%)** |
+
+The one expected failure: a table-heavy page where PyMuPDF extracts no text (switch to `DoclingPDFParser` for full table support).
+
+> Run the benchmark yourself: `pytest test_nutrition_accuracy.py -v`  
+> PDF: [OpenStax Human Nutrition](https://openstax.org/details/books/nutrition-science-and-everyday-application)
 
 ---
 
