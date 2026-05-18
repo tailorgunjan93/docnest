@@ -1,0 +1,47 @@
+name: Welcome First-Time Contributors
+
+on:
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post welcome message for first-time contributors
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const creator = context.payload.pull_request.user.login;
+
+            // check if this person has merged a PR before
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              state: "closed",
+            });
+
+            const hasMergedBefore = prs.some(
+              pr => pr.user.login === creator && pr.merged_at !== null
+            );
+
+            if (!hasMergedBefore) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo:  context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: `
+  Hey @${creator}, welcome to DOCNEST! 🎉 Thanks for your first contribution.
+
+  A few things to make review smooth:
+  - [ ] Tests pass locally — \`pytest tests/ -v\`
+  - [ ] If you added a feature, there's at least one test for it
+  - [ ] If you changed a parser or query layer, the README reflects it
+
+  No pressure — we'll review and give feedback. Thanks again for taking the time! 🙏
+                `.trim(),
+              });
+            }

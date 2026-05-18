@@ -1,0 +1,36 @@
+name: Close Stale Issues
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"   # every Monday at 08:00 UTC
+  workflow_dispatch:        # allow manual trigger
+
+permissions:
+  issues: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          # issues untouched for 45 days get a nudge
+          days-before-stale: 45
+          stale-issue-label: "stale"
+          stale-issue-message: >
+            This issue has been quiet for 45 days. 👋
+            If it's still relevant, leave a comment and we'll keep it open.
+            Otherwise it will close automatically in 7 days to keep the tracker clean.
+
+          # close 7 days after the stale nudge
+          days-before-close: 7
+          close-issue-message: >
+            Closing due to inactivity. Feel free to reopen if this comes up again —
+            just drop a comment with any new info.
+
+          # never mark PRs stale
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
+
+          # these labels keep an issue open forever
+          exempt-issue-labels: "pinned,security,roadmap"
