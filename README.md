@@ -16,11 +16,14 @@
 *Parse any document. Understand its structure. Build RAG that actually works.*
 
 [Why DOCNEST](#-why-docnest) •
+[Installation](#-installation) •
 [Quick Start](#-quick-start) •
+[Python API](#-python-api) •
+[PDF Parsing](#-pdf-parsing--memory-guide) •
 [How It Works](#-how-it-works) •
 [CLI Reference](#-cli-reference) •
-[Roadmap](#-roadmap) •
-[Contributing](#-contributing)
+[Providers](#-provider-interfaces) •
+[Roadmap](#-roadmap)
 
 </div>
 
@@ -55,25 +58,48 @@ The output is a `.udf` file — a self-contained portable knowledge base you can
 
 ---
 
-## 🚀 Quick Start
+## 📦 Installation
 
 ```bash
 pip install docnest-ai
 ```
 
+### Optional extras
+
+```bash
+# Fast PDF parsing (no ML, no downloads) — recommended for most PDFs
+pip install pymupdf
+
+# ML-quality PDF parsing (tables, scanned docs) — requires more RAM
+pip install docling
+
+# Fast approximate nearest-neighbour search (large document sets)
+pip install faiss-cpu
+
+# Persistent cross-session vector store
+pip install chromadb
+
+# Everything at once
+pip install docnest-ai pymupdf docling faiss-cpu chromadb
+```
+
+---
+
+## 🚀 Quick Start
+
 ### Convert a document
 
 ```bash
-# Basic convert (local embeddings, no LLM)
-docnest convert report.pdf
+# Fastest — PyMuPDF parser, local embeddings, no LLM required
+docnest convert report.pdf --pdf-engine pymupdf --fast
 
-# With LLM intelligence enrichment
+# Full quality — Docling parser + LLM enrichment (Groq is free-tier friendly)
 docnest convert report.pdf --llm-provider groq --llm-model llama-3.3-70b-versatile
 
-# Fast mode: embeddings only, skip LLM stages
-docnest convert report.pdf --fast
+# Large PDF (>30 pages) — auto page-chunked, full ML quality, bounded RAM
+docnest convert big-report.pdf --llm-provider openai --llm-model gpt-4o-mini
 
-# With organizational metadata
+# With metadata tags
 docnest convert report.pdf \
   --owner "Alice Smith" \
   --department "Finance" \
@@ -96,11 +122,11 @@ docnest inspect report.udf
 ### View as HTML
 
 ```bash
-docnest view report.udf          # opens in browser
+docnest view report.udf           # opens browser
 docnest view report.udf --out report.html
 ```
 
-### Library (multi-document search)
+### Library — multi-document search
 
 ```bash
 docnest library init ./docs/
@@ -113,53 +139,211 @@ docnest library remove ./docs/ old-report.udf
 
 ---
 
-## Python API
+## 🐍 Python API
+
+### Converting a document
 
 ```python
-from docnest import DocNestPipeline
+from docnest.pipeline import DocNestPipeline
 
-# Convert with all defaults (HuggingFace embeddings, no LLM)
-pipeline = DocNestPipeline()
-pipeline.convert("report.pdf")   # → report.udf
-
-# With LLM + custom embedding model
+# ── Option 1: Fully local — no API keys, no internet after first download ──
 pipeline = DocNestPipeline(
-    embedding_model="huggingface/all-MiniLM-L6-v2",
+    llm_provider="ollama",
+    llm_model="llama3.2",          # ollama pull llama3.2
+    emb_provider="huggingface",
+    emb_model="all-MiniLM-L6-v2",  # downloaded automatically on first run
+)
+pipeline.convert("report.pdf")     # → report.udf
+
+# ── Option 2: Groq LLM + local HuggingFace embeddings (recommended) ──
+pipeline = DocNestPipeline(
     llm_provider="groq",
     llm_model="llama-3.3-70b-versatile",
-    api_key="gsk_...",
+    llm_api_key="gsk_...",          # or set GROQ_API_KEY env var
+    emb_provider="huggingface",
+    emb_model="all-MiniLM-L6-v2",
 )
 pipeline.convert("report.pdf")
+
+# ── Option 3: OpenAI for both LLM and embeddings ──
+pipeline = DocNestPipeline(
+    llm_provider="openai",
+    llm_model="gpt-4o-mini",
+    llm_api_key="sk-...",
+    emb_provider="openai",
+    emb_model="text-embedding-3-small",
+    emb_api_key="sk-...",
+)
+pipeline.convert("report.pdf")
+
+# ── Option 4: Skip intelligence (no LLM, fastest) ──
+pipeline = DocNestPipeline(skip_intelligence=True)
+pipeline.convert("report.pdf")     # embeddings only, no section summaries
+
+# ── Option 5: Custom output path + progress callback ──
+pipeline = DocNestPipeline(
+    llm_provider="groq",
+    llm_api_key="gsk_...",
+)
+pipeline.convert(
+    "report.pdf",
+    output_path="./output/report.udf",
+    on_stage_complete=lambda stage, _: print(f"✓ {stage}"),
+)
 ```
+
+### Querying a document
 
 ```python
-from docnest import UDFReader
+from docnest.reader import UDFIndex
 
-reader = UDFReader.load("report.udf")
+# Load the .udf file (instant — no LLM needed to load)
+idx = UDFIndex.load("report.udf")
 
-# Simple query
-result = reader.query("What was Q3 revenue?")
-print(result["answer"])     # "Q3 revenue was $38M, up 22% YoY."
-print(result["citation"])   # "§3.1 — Revenue Breakdown"
+# ── Simple query — escalates through layers automatically ──
+result = idx.query(
+    "What was Q3 revenue?",
+    llm_provider="groq",
+    llm_model="llama-3.3-70b-versatile",
+    llm_api_key="gsk_...",
+)
 
-# Use a specific vector backend
-reader = UDFReader.load("report.udf", vector="faiss")
-reader = UDFReader.load("report.udf", vector="chroma", persist_directory="./chroma_db")
+print(result.answer)       # "Q3 revenue was $38M, up 22% YoY."
+print(result.citations)    # ["§3.1"]
+print(result.layer_used)   # 1  (BM25+cosine, 0 tokens!)
+print(result.tokens_used)  # 0
+
+# ── Use FAISS for faster search on large documents ──
+idx = UDFIndex.load("report.udf", vector="faiss")
+
+# ── ChromaDB — persists across sessions ──
+idx = UDFIndex.load("report.udf", vector="chroma", persist_dir="./chroma_store")
+
+# ── Multiple queries on same index (load once, reuse) ──
+questions = [
+    "What were the key risks?",
+    "What is the revenue forecast for 2025?",
+    "Who are the main competitors?",
+]
+for q in questions:
+    r = idx.query(q, llm_provider="groq", llm_api_key="gsk_...")
+    print(f"[L{r.layer_used}] {r.answer[:120]}")
 ```
 
-### Pluggable vector backends
+### Parsing PDFs directly
 
-| Backend | Install | Best for |
+```python
+from docnest.parsers.pdf import DoclingPDFParser
+from docnest.parsers.pymupdf_pdf import PyMuPDFParser
+from docnest.parsers.factory import ParserFactory
+
+# ── DoclingPDFParser — full ML quality (tables, headings, scanned pages) ──
+
+# Small PDF (≤30 pages) — runs Docling directly
+parser = DoclingPDFParser()
+raw = parser.parse("report.pdf")
+
+# Large PDF — auto page-chunked in 30-page pieces, same full ML quality
+raw = DoclingPDFParser().parse("600-page-annual-report.pdf")
+
+# Explicit chunk size — tune to your RAM
+raw = DoclingPDFParser(chunk_pages=10).parse("large.pdf")   # low RAM machine
+raw = DoclingPDFParser(chunk_pages=50).parse("large.pdf")   # high RAM machine
+
+# Scanned PDF (OCR) — requires Docling's Tesseract integration
+raw = DoclingPDFParser(ocr=True).parse("scanned-contract.pdf")
+
+# ── PyMuPDFParser — fast, zero ML, works on any machine ──
+parser = PyMuPDFParser()
+raw = parser.parse("report.pdf")
+
+# ── ParserFactory — auto-selects the right parser by file extension ──
+factory = ParserFactory()                          # default: Docling for PDF
+factory = ParserFactory(pdf_engine="pymupdf")      # lightweight: PyMuPDF for PDF
+
+raw = factory.get("report.pdf").parse("report.pdf")
+raw = factory.get("report.docx").parse("report.docx")
+raw = factory.get("data.xlsx").parse("data.xlsx")
+raw = factory.get("page.html").parse("page.html")
+raw = factory.get("notes.md").parse("notes.md")
+
+# Inspect what was parsed
+print(f"Sections: {len(raw.sections)}")
+for s in raw.sections:
+    print(f"  L{s.level}  {s.title}  ({len(s.tables)} tables)")
+```
+
+### Custom PDF engine at runtime
+
+```python
+from docnest.parsers.factory import ParserFactory
+
+factory = ParserFactory()
+
+# Switch to PyMuPDF for this session
+factory.set_pdf_engine("pymupdf")
+
+# Switch back to Docling
+factory.set_pdf_engine("docling")
+
+# Register a completely custom parser
+from docnest.parsers.base import IParser
+
+class MyParser(IParser):
+    def supports(self, path: str) -> bool:
+        return path.endswith(".myformat")
+    def parse(self, path: str):
+        ...
+
+factory.register(MyParser())
+```
+
+---
+
+## 📄 PDF Parsing & Memory Guide
+
+DOCNEST gives you two PDF parsers. Choose based on your document type and available RAM:
+
+| | `DoclingPDFParser` | `PyMuPDFParser` |
 |---|---|---|
-| `numpy` (default) | built-in | Small docs, zero extra deps |
-| `faiss` | `pip install faiss-cpu` | Fast ANN on large docs |
-| `chroma` | `pip install chromadb` | Persistent cross-session store |
+| **Table quality** | ✅ ML-grade (TableFormer) | ⚠️ Heuristic (basic grids) |
+| **Scanned PDFs** | ✅ OCR support | ❌ Text-only |
+| **Heading detection** | ✅ Semantic (Docling layout) | ⚠️ Font-size heuristic |
+| **RAM usage** | ~1–2 GB (ML models) | ~50 MB |
+| **First-run download** | ~1 GB models | None |
+| **Speed** | Slower | Very fast |
+| **Best for** | Financial reports, contracts, research papers | Resumes, simple reports, fast prototyping |
+
+### Memory management for large PDFs
+
+`DoclingPDFParser` auto-chunks large PDFs — no quality loss, bounded RAM:
 
 ```python
-from docnest.providers import get_vector_backend
+# Auto-chunking kicks in for PDFs > 30 pages
+# Peak RAM ≈ RAM_per_chunk, not RAM_for_whole_file
+raw = DoclingPDFParser().parse("600-page-report.pdf")
 
-backend = get_vector_backend("faiss")
-reader = UDFReader.load("report.udf", vector=backend)
+# Tune chunk size to your machine
+raw = DoclingPDFParser(chunk_pages=10).parse("report.pdf")   # 8 GB RAM
+raw = DoclingPDFParser(chunk_pages=30).parse("report.pdf")   # 16 GB RAM (default)
+raw = DoclingPDFParser(chunk_pages=60).parse("report.pdf")   # 32 GB+ RAM
+
+# Page images are disabled by default (saves 50-200 MB per page)
+# Only enable if you specifically need image assets
+raw = DoclingPDFParser(generate_images=True).parse("report.pdf")
+```
+
+**How chunking works:**
+1. PyMuPDF splits the PDF into N-page temp files
+2. Docling runs with full ML quality on each chunk
+3. Sections are merged — output is identical to processing the whole file at once
+4. Temp files are deleted immediately after each chunk
+
+If you hit `std::bad_alloc` or `OSError: paging file too small`, fall back to PyMuPDF:
+
+```python
+from docnest.parsers.pymupdf_pdf import PyMuPDFParser
+raw = PyMuPDFParser().parse("huge.pdf")  # Zero ML, always succeeds
 ```
 
 ---
@@ -169,16 +353,16 @@ reader = UDFReader.load("report.udf", vector=backend)
 DOCNEST runs a **6-stage normalization pipeline** on every document:
 
 ```
-Stage 1  Structure Extraction    (Docling / PyMuPDF)  — headings, tables, lists, hierarchy
-Stage 2  Section Assignment      (rule-based)          — §1, §1.1, §1.2 ... every heading = §id
-Stage 3  Table Normalization     (LLM)                 — { caption, headers, rows[] } JSON
-Stage 4  Section Summarization   (LLM)                 — one sentence per section
-Stage 5  Document Intelligence   (LLM)                 — summary, insights[], key_numbers[]
-Stage 6  Embedding + Quantize    (local)               — BM25 keywords + float16 vectors
+Stage 1  Structure Extraction    (Docling / PyMuPDF)   headings, tables, lists, hierarchy
+Stage 2  Section Assignment      (rule-based)           §1, §1.1, §1.2 … every heading = §id
+Stage 3  Table Normalization     (normaliser)           { caption, headers, rows[] } JSON
+Stage 4  Section Summarization   (LLM)                  one sentence per section
+Stage 5  Document Intelligence   (LLM)                  summary, insights[], key_numbers[]
+Stage 6  Embedding + Quantize    (local)                BM25 keywords + float16 vectors
 ```
 
-**Stages 1, 2, and 6 run locally — zero LLM cost.**
-Stages 3–5 call an LLM **once per document**. Every future query benefits for free.
+**Stages 1, 2, 3, and 6 run locally — zero LLM cost.**  
+Stages 4–5 call an LLM **once per document**. Every future query benefits for free.
 
 The result is a `.udf` file — a self-contained, portable knowledge base:
 
@@ -191,8 +375,8 @@ document.udf  (zip)
 └── assets/            images, structured tables
 ```
 
-> **`embeddings.bin`** is a flat binary blob: `N × D × 2 bytes` (float16).
-> The old base64-per-section format is still read for backward compatibility.
+> **`embeddings.bin`** is a flat binary blob: `N × D × 2 bytes` (float16).  
+> Legacy base64-per-section format is still read for backward compatibility.
 
 ---
 
@@ -202,42 +386,86 @@ DOCNEST resolves queries without sending full documents to the LLM:
 
 | Layer | Mechanism | Tokens | Latency |
 |---|---|---|---|
-| 0 | Pre-computed (summary, insights, key_numbers) | **0** | < 1ms |
-| 1 | BM25 + cosine → navigate to §section | **0** | < 20ms |
-| 2 | Section-scoped LLM (~300 tokens) | ~300 | 1–3s |
-| 3 | Multi-section synthesis (~900 tokens) | ~900 | 2–5s |
-| 4 | Full document fallback | ~4000+ | 5–15s |
-| — | Naive RAG (blind chunking) | ~4000–8000 | 5–15s |
+| 0 | Pre-computed (summary, insights, key_numbers) | **0** | < 1 ms |
+| 1 | BM25 + cosine → navigate to §section | **0** | < 20 ms |
+| 2 | Section-scoped LLM (~300 tokens) | ~300 | 1–3 s |
+| 3 | Multi-section synthesis (~900 tokens) | ~900 | 2–5 s |
+| 4 | Full document fallback | ~4000+ | 5–15 s |
+| — | Naive RAG (blind chunking) | ~4000–8000 | 5–15 s |
 
-**Layer 0 and 1 answer ~70% of real-world questions with zero LLM cost.**
+**Layers 0 and 1 answer ~70% of real-world questions with zero LLM cost.**
 
 ---
 
-## 📦 Supported Formats
+## 📂 Supported Formats
 
 | Format | Parser | Notes |
 |---|---|---|
-| PDF (text) | Docling | Full heading hierarchy, table extraction |
-| PDF (scanned) | Docling + Tesseract OCR | OCR fallback per page |
-| DOCX | Docling | Word documents with styles |
-| XLSX | OpenPyXL | Each sheet → sections, all tables preserved |
-| HTML | BeautifulSoup | h1-h6 hierarchy |
-| Markdown | mistletoe | ATX and Setext headings |
+| PDF (text-based) | `DoclingPDFParser` / `PyMuPDFParser` | Full heading hierarchy, table extraction |
+| PDF (scanned) | `DoclingPDFParser(ocr=True)` | OCR via Docling's Tesseract integration |
+| DOCX | `DocxParser` | Word documents with styles and heading levels |
+| XLSX | `ExcelParser` | Each sheet → section, all tables preserved |
+| HTML | `HTMLParser` | h1–h6 hierarchy via BeautifulSoup |
+| Markdown | `MarkdownParser` | ATX and Setext headings via mistletoe |
 
 ---
 
 ## 🔌 Provider Interfaces
 
-All external dependencies sit behind swappable interfaces. Change the backend string — no other code changes required.
+All external dependencies sit behind swappable interfaces. Change the string — no other code changes.
 
-| Interface | Options | Notes |
+### LLM Providers (`llm_provider=`)
+
+| Value | Notes |
+|---|---|
+| `"groq"` | Fast, generous free tier — recommended for getting started |
+| `"openai"` | GPT-4o-mini, GPT-4o |
+| `"ollama"` | Fully local — `ollama pull llama3.2` |
+| `"anthropic"` | Claude Haiku, Claude Sonnet |
+| `"google"` | Gemini Flash, Gemini Pro |
+| `"mistral"` | Mistral Large, Mixtral |
+| `"together"` | Together AI hosted models |
+| `"cohere"` | Command R+ |
+| `"bedrock"` | AWS Bedrock (boto3 required) |
+
+### Embedding Providers (`emb_provider=`)
+
+| Value | Notes |
+|---|---|
+| `"huggingface"` | Local — downloads model once, then offline. **Default.** |
+| `"openai"` | `text-embedding-3-small` / `text-embedding-3-large` |
+| `"ollama"` | Local via Ollama (`nomic-embed-text`, etc.) |
+| `"google"` | Vertex AI / Gemini embeddings |
+| `"cohere"` | `embed-english-v3.0` |
+| `"bedrock"` | AWS Bedrock Titan embeddings |
+| `"nvidia"` | NVIDIA NIM embeddings |
+| `"mistral"` | Mistral embeddings |
+
+### Vector Backends (`vector=`)
+
+| Value | Install | Best for |
 |---|---|---|
-| `ILLMProvider` | `groq`, `openai`, `ollama`, `anthropic`, … | 14+ via LangChain |
-| `IEmbedder` | `huggingface`, `openai`, `cohere`, … | 10+ via LangChain |
-| `IVectorBackend` | `numpy`, `faiss`, `chroma` | Pluggable similarity search |
-| `ISearchProvider` | `bm25`, `tfidf`, `keyword` | Keyword/hybrid search |
-| `IStorageBackend` | `zip` (default), `dir` | Archive read/write |
-| `IOCRProvider` | `null`, `tesseract`, `easyocr` | OCR for scanned pages |
+| `"numpy"` (default) | built-in | Small docs, zero extra deps |
+| `"faiss"` | `pip install faiss-cpu` | Fast ANN on large collections |
+| `"chroma"` | `pip install chromadb` | Persistent cross-session store |
+
+```python
+from docnest.reader import UDFIndex
+
+idx = UDFIndex.load("report.udf")                               # numpy (default)
+idx = UDFIndex.load("report.udf", vector="faiss")              # FAISS
+idx = UDFIndex.load("report.udf", vector="chroma",             # ChromaDB
+                    persist_dir="./store")
+```
+
+### Search Providers
+
+| Value | Notes |
+|---|---|
+| `"auto"` | Picks best available — bm25 → tfidf → keyword |
+| `"bm25"` | BM25Okapi — best keyword recall |
+| `"tfidf"` | TF-IDF — good fallback |
+| `"keyword"` | Simple term overlap — zero deps |
 
 ---
 
@@ -245,14 +473,15 @@ All external dependencies sit behind swappable interfaces. Change the backend st
 
 | Phase | Description | Status |
 |---|---|---|
-| **1** | Core parser + normalizer (PDF, DOCX, XLSX, HTML, MD) | ✅ Done |
-| **2** | Embedding + quantization (10+ models via LangChain) | ✅ Done |
+| **1** | Core parsers — PDF (Docling + PyMuPDF), DOCX, XLSX, HTML, MD | ✅ Done |
+| **2** | Embedding + quantization (10+ providers via LangChain) | ✅ Done |
 | **3** | Intelligence engine (summary, insights, key_numbers) | ✅ Done |
-| **4** | UDF writer + reader + five-layer query | ✅ Done |
-| **5** | Connectors: GitHub, Confluence, Notion, Jira | 📋 Planned |
-| **6** | PyPI release `pip install docnest-ai` | 🔨 In Progress |
-| **7** | Library mode (multi-document cross-search) | ✅ Done |
-| **8** | Hierarchical supervisor+worker for datasets >200MB | 📋 Planned |
+| **4** | UDF writer + reader + five-layer query engine | ✅ Done |
+| **5** | Large PDF chunking — full ML quality, bounded RAM | ✅ Done |
+| **6** | Library mode — multi-document cross-search | ✅ Done |
+| **7** | PyPI release `pip install docnest-ai` | 🔨 In Progress |
+| **8** | Connectors: GitHub, Confluence, Notion, Jira | 📋 Planned |
+| **9** | Hierarchical supervisor+worker for datasets > 200 MB | 📋 Planned |
 
 Track detailed progress: [ROADMAP.md](ROADMAP.md)
 
@@ -261,8 +490,6 @@ Track detailed progress: [ROADMAP.md](ROADMAP.md)
 ## 🤝 Contributing
 
 **DOCNEST is community-first.** We are building this in the open and want contributors at every level.
-
-### Where to start
 
 | Area | Good for |
 |---|---|

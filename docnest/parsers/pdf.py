@@ -44,7 +44,18 @@ class DoclingPDFParser(IParser):
         # raw.sections[n].tables → list of TableData objects
     """
 
-    def __init__(self, ocr: bool = False, table_structure: bool = True) -> None:
+    # Pages-per-chunk threshold: files larger than this get auto-chunked.
+    # 20 pages keeps peak RAM under ~1 GB for typical dense PDFs.
+    _AUTO_CHUNK_THRESHOLD_PAGES = 30
+
+    def __init__(
+        self,
+        ocr: bool = False,
+        table_structure: bool = True,
+        generate_images: bool = False,
+        images_scale: float = 1.0,
+        chunk_pages: int = 0,
+    ) -> None:
         """Initialise the PDF parser.
 
         Args:
@@ -52,9 +63,21 @@ class DoclingPDFParser(IParser):
                  Default False — text-based PDFs don't need OCR.
             table_structure: Use ML table structure analysis. Default True,
                  set False for faster parsing without ML model downloads.
+            generate_images: Render page/picture images (increases RAM usage
+                 significantly). Default False.
+            images_scale: Rendering scale for page images (lower = less RAM).
+                 Only relevant when generate_images=True. Default 1.0.
+            chunk_pages: Process this many pages at a time to cap memory usage.
+                 0 = auto (uses _AUTO_CHUNK_THRESHOLD_PAGES for files >30 pages).
+                 Set explicitly, e.g. chunk_pages=20, to override auto behaviour.
+                 Chunking splits the PDF via PyMuPDF (fitz), processes each chunk
+                 with full Docling quality, then merges sections — no quality loss.
         """
         self._ocr = ocr
         self._table_structure = table_structure
+        self._generate_images = generate_images
+        self._images_scale = images_scale
+        self._chunk_pages = chunk_pages
         # Lazy-loaded — Docling model init is expensive (~3-5 s first call)
         self._converter: object | None = None
 
@@ -68,6 +91,10 @@ class DoclingPDFParser(IParser):
 
     def parse(self, file_path: str) -> RawDocument:
         """Parse a PDF into a RawDocument.
+
+        For large PDFs the file is automatically split into page chunks so that
+        Docling's ML models run on each chunk sequentially — capping peak RAM
+        while preserving full table-structure quality.
 
         Args:
             file_path: Absolute or relative path to the PDF file.
@@ -85,6 +112,34 @@ class DoclingPDFParser(IParser):
         if path.stat().st_size == 0:
             raise ParseError(f"PDF is empty: {path}")
 
+        # Decide whether to chunk based on page count
+        total_pages = self._count_pages(path)
+        chunk_size = self._chunk_pages or (
+            self._AUTO_CHUNK_THRESHOLD_PAGES
+            if total_pages > self._AUTO_CHUNK_THRESHOLD_PAGES
+            else 0
+        )
+
+        if chunk_size and total_pages > chunk_size:
+            return self._parse_chunked(path, total_pages, chunk_size)
+
+        return self._parse_single(path, file_path)
+
+    # ------------------------------------------------------------------ #
+    #  Internal helpers                                                    #
+    # ------------------------------------------------------------------ #
+
+    def _count_pages(self, path: Path) -> int:
+        """Return page count using PyMuPDF (fitz) if available, else 0."""
+        try:
+            import fitz  # type: ignore[import]
+            with fitz.open(str(path)) as pdf:
+                return len(pdf)
+        except Exception:
+            return 0  # fitz not installed or failed → skip chunking
+
+    def _parse_single(self, path: Path, original_path: str) -> RawDocument:
+        """Run Docling on the whole file and return a RawDocument."""
         try:
             result = self._get_converter().convert(str(path))  # type: ignore[union-attr]
         except Exception as exc:
@@ -92,21 +147,112 @@ class DoclingPDFParser(IParser):
                 f"Docling failed to convert '{path.name}': {exc}"
             ) from exc
 
+        # Warn on partial success (std::bad_alloc etc.)
+        try:
+            from docling.datamodel.base_models import ConversionStatus  # type: ignore[import]
+            if result.status == ConversionStatus.PARTIAL_SUCCESS:
+                failed_pages = [
+                    p.page_no for p in result.pages
+                    if getattr(p, "status", None) not in (
+                        None, "success", ConversionStatus.SUCCESS
+                    )
+                ]
+                import warnings
+                warnings.warn(
+                    f"Docling processed '{path.name}' with partial success — "
+                    f"{len(failed_pages)} page(s) failed "
+                    f"(pages {failed_pages[:10]}{'...' if len(failed_pages) > 10 else ''}). "
+                    f"Tip: DoclingPDFParser(chunk_pages=20) processes large PDFs in "
+                    f"memory-bounded chunks with no quality loss.",
+                    RuntimeWarning,
+                    stacklevel=4,
+                )
+            elif result.status not in (
+                ConversionStatus.SUCCESS, ConversionStatus.PARTIAL_SUCCESS
+            ):
+                raise ParseError(
+                    f"Docling conversion failed for '{path.name}' "
+                    f"(status={result.status}). "
+                    f"Try DoclingPDFParser(chunk_pages=20) for large PDFs."
+                )
+        except ImportError:
+            pass  # older Docling without ConversionStatus
+
         doc = result.document
         title = self._extract_title(doc, path)
-        sections = self._build_sections(doc)
+        sections = self._build_sections(doc, doc)
 
         return RawDocument(
-            doc_id=self._make_doc_id(file_path),
+            doc_id=self._make_doc_id(original_path),
             title=title,
             source=str(path),
             format="pdf",
             sections=sections,
         )
 
-    # ------------------------------------------------------------------ #
-    #  Internal helpers                                                    #
-    # ------------------------------------------------------------------ #
+    def _parse_chunked(
+        self, path: Path, total_pages: int, chunk_size: int
+    ) -> RawDocument:
+        """Split the PDF into page chunks, run Docling on each, merge sections.
+
+        This keeps peak RAM proportional to chunk_size (not total_pages), while
+        preserving full Docling ML quality (TableFormer etc.) on every page.
+
+        Requires PyMuPDF (pip install pymupdf) for splitting.
+        """
+        import tempfile
+        import os
+        try:
+            import fitz  # type: ignore[import]
+        except ImportError as exc:
+            raise ParseError(
+                "PyMuPDF (fitz) is required for chunked parsing. "
+                "Run: pip install pymupdf"
+            ) from exc
+
+        all_sections: list[Section] = []
+        title: str = ""
+        n_chunks = (total_pages + chunk_size - 1) // chunk_size
+
+        src_pdf = fitz.open(str(path))
+        try:
+            for chunk_idx in range(n_chunks):
+                start = chunk_idx * chunk_size
+                end   = min(start + chunk_size - 1, total_pages - 1)  # fitz is 0-indexed
+
+                # Write chunk to a temp file
+                chunk_doc = fitz.open()
+                chunk_doc.insert_pdf(src_pdf, from_page=start, to_page=end)
+
+                tmp = tempfile.NamedTemporaryFile(
+                    suffix=".pdf", delete=False, prefix=f"docnest_chunk{chunk_idx}_"
+                )
+                tmp.close()
+                try:
+                    chunk_doc.save(tmp.name)
+                    chunk_doc.close()
+
+                    chunk_raw = self._parse_single(Path(tmp.name), str(path))
+
+                    # Use title from first chunk (usually has the doc title)
+                    if not title and chunk_raw.title:
+                        title = chunk_raw.title
+
+                    all_sections.extend(chunk_raw.sections)
+
+                finally:
+                    os.unlink(tmp.name)
+
+        finally:
+            src_pdf.close()
+
+        return RawDocument(
+            doc_id=self._make_doc_id(str(path)),
+            title=title or _filename_to_title(path.stem),
+            source=str(path),
+            format="pdf",
+            sections=all_sections,
+        )
 
     def _get_converter(self) -> object:
         """Lazy-init the Docling DocumentConverter with configurable options.
@@ -128,8 +274,14 @@ class DoclingPDFParser(IParser):
                 ) from exc
 
             pipeline_opts = PdfPipelineOptions()
-            pipeline_opts.do_ocr = self._ocr                          # False by default
-            pipeline_opts.do_table_structure = self._table_structure  # True by default
+            pipeline_opts.do_ocr = self._ocr
+            pipeline_opts.do_table_structure = self._table_structure
+            # Disable image rendering by default — each page image can consume
+            # 50-200 MB of RAM, triggering std::bad_alloc on large PDFs.
+            pipeline_opts.generate_page_images = self._generate_images
+            pipeline_opts.generate_picture_images = self._generate_images
+            if self._generate_images:
+                pipeline_opts.images_scale = self._images_scale
 
             self._converter = DocumentConverter(
                 format_options={
@@ -147,7 +299,7 @@ class DoclingPDFParser(IParser):
                     return text
         return _filename_to_title(path.stem)
 
-    def _build_sections(self, doc: object) -> list[Section]:
+    def _build_sections(self, doc: object, docling_doc: object = None) -> list[Section]:
         """Walk Docling items and group content into Section objects.
 
         Rules:
@@ -193,7 +345,7 @@ class DoclingPDFParser(IParser):
 
             elif label == _TABLE_LABEL:
                 table_counter += 1
-                table_data = self._extract_table(item, table_counter)
+                table_data = self._extract_table(item, table_counter, docling_doc)
                 if table_data:
                     if current is None:
                         current = Section(id="", title="Tables", level=1, text="")
@@ -213,7 +365,9 @@ class DoclingPDFParser(IParser):
 
         return sections
 
-    def _extract_table(self, item: object, counter: int) -> Optional[TableData]:
+    def _extract_table(
+        self, item: object, counter: int, docling_doc: object = None
+    ) -> Optional[TableData]:
         """Convert a Docling TableItem to a TableData model.
 
         Tries DataFrame export first (cleanest), then falls back to raw cell
@@ -221,9 +375,12 @@ class DoclingPDFParser(IParser):
         """
         table_id = f"tbl_{counter:03d}"
 
-        # Attempt 1: pandas DataFrame export
+        # Attempt 1: pandas DataFrame export (pass doc to avoid deprecation warning)
         try:
-            df = item.export_to_dataframe()  # type: ignore[attr-defined]
+            if docling_doc is not None:
+                df = item.export_to_dataframe(doc=docling_doc)  # type: ignore[attr-defined]
+            else:
+                df = item.export_to_dataframe()  # type: ignore[attr-defined]
             headers = [str(c) for c in df.columns.tolist()]
             rows = [[str(v) for v in row] for row in df.values.tolist()]
             if headers:

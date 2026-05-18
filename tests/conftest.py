@@ -25,6 +25,7 @@ from docnest.models import (
     TableData,
 )
 from docnest.normalizer import SectionNormaliser
+from docnest.providers.llm import ILLMProvider
 from docnest.providers.vector import IVectorBackend
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -176,8 +177,11 @@ def mock_embedder() -> MockEmbedder:
 
 # ── Mock LLM provider ─────────────────────────────────────────────────────────
 
-class MockLLMProvider:
-    def complete(self, prompt: str, **kwargs: Any) -> str:
+class MockLLMProvider(ILLMProvider):
+    """Concrete ILLMProvider for tests — no network, returns fixed string."""
+
+    def complete(self, prompt: str, system: str = "", temperature: float = 0.1,
+                 max_tokens: int = 512) -> str:
         return "Mock answer from LLM."
 
     @property

@@ -269,3 +269,66 @@ class TestEmbeddingsBin:
         with zipfile.ZipFile(path2) as zf:
             b2 = zf.read("embeddings.bin")
         assert len(b1) != len(b2)  # 2 sections vs 4 sections
+
+
+# ── write_library stub ────────────────────────────────────────────────────────
+
+class TestWriteLibrary:
+    def test_write_library_raises_not_implemented(self, tmp_path: Path):
+        from tests.conftest import MockEmbedder
+        writer = UDFWriter(MockEmbedder(), Quantizer("float16"))
+        with pytest.raises(NotImplementedError):
+            writer.write_library([], str(tmp_path / "lib.udf"))
+
+
+# ── Error paths ───────────────────────────────────────────────────────────────
+
+class TestWriteErrorPaths:
+    def test_udferror_from_storage_is_reraised(self, tmp_path: Path):
+        """UDFWriteError raised by storage is re-raised unchanged (lines 129-130)."""
+        from unittest.mock import patch
+        from docnest.exceptions import UDFWriteError
+        from tests.conftest import MockEmbedder
+        doc = make_doc()
+        writer = UDFWriter(MockEmbedder(), Quantizer("float16"))
+        with patch.object(writer.storage, "write_archive",
+                          side_effect=UDFWriteError("storage error")):
+            with pytest.raises(UDFWriteError, match="storage error"):
+                writer.write(doc, str(tmp_path / "out.udf"))
+
+    def test_generic_exception_wrapped_in_udferror(self, tmp_path: Path):
+        """Non-UDFWriteError exceptions are wrapped in UDFWriteError (lines 131-132)."""
+        from unittest.mock import patch
+        from docnest.exceptions import UDFWriteError
+        from tests.conftest import MockEmbedder
+        doc = make_doc()
+        writer = UDFWriter(MockEmbedder(), Quantizer("float16"))
+        with patch.object(writer.storage, "write_archive",
+                          side_effect=OSError("disk full")):
+            with pytest.raises(UDFWriteError):
+                writer.write(doc, str(tmp_path / "out.udf"))
+
+
+# ── Zero-vector placeholder ───────────────────────────────────────────────────
+
+class TestZeroVectorPlaceholder:
+    def test_sections_without_embeddings_get_zero_placeholder(self, tmp_path: Path):
+        """When embedder returns no vectors, all sections use zero-vector (line 159)."""
+        from tests.conftest import MockEmbedder
+        import numpy as np
+
+        class ZeroEmbedder(MockEmbedder):
+            def embed(self, texts):
+                return []  # no embeddings → all sections get zero placeholder
+
+        doc = make_doc(n_sections=2)
+        out = str(tmp_path / "zero.udf")
+        writer = UDFWriter(ZeroEmbedder(), Quantizer("float16"))
+        p = writer.write(doc, out)
+        assert Path(p).exists()
+
+        with zipfile.ZipFile(p) as zf:
+            blob = zf.read("embeddings.bin")
+        # 2 sections × 384 dims × 2 bytes (float16) — all zeros
+        assert len(blob) == 2 * 384 * 2
+        assert all(b == 0 for b in blob)

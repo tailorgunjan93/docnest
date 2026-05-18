@@ -173,3 +173,64 @@ class TestBatchConsistency:
         vec = rand_vec(dims)
         out = q.dequantize(q.quantize(vec), dims)
         np.testing.assert_allclose(vec, out, atol=0.01)
+
+
+# ── cosine_similarity ─────────────────────────────────────────────────────────
+
+class TestCosineSimilarity:
+    def test_identical_vectors_score_1(self):
+        v = np.array([1.0, 0.0, 0.0], dtype=np.float32)
+        assert Quantizer.cosine_similarity(v, v) == pytest.approx(1.0, abs=1e-6)
+
+    def test_opposite_vectors_score_minus_1(self):
+        v = np.array([1.0, 0.0], dtype=np.float32)
+        w = np.array([-1.0, 0.0], dtype=np.float32)
+        assert Quantizer.cosine_similarity(v, w) == pytest.approx(-1.0, abs=1e-6)
+
+    def test_orthogonal_vectors_score_0(self):
+        v = np.array([1.0, 0.0], dtype=np.float32)
+        w = np.array([0.0, 1.0], dtype=np.float32)
+        assert Quantizer.cosine_similarity(v, w) == pytest.approx(0.0, abs=1e-6)
+
+    def test_zero_vector_returns_0(self):
+        zero = np.zeros(4, dtype=np.float32)
+        v = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
+        assert Quantizer.cosine_similarity(zero, v) == 0.0
+        assert Quantizer.cosine_similarity(v, zero) == 0.0
+
+    def test_returns_float(self):
+        v = np.array([1.0, 2.0, 3.0], dtype=np.float32)
+        w = np.array([4.0, 5.0, 6.0], dtype=np.float32)
+        result = Quantizer.cosine_similarity(v, w)
+        assert isinstance(result, float)
+
+    def test_result_in_minus1_to_1(self):
+        rng = np.random.default_rng(99)
+        for _ in range(10):
+            a = rng.standard_normal(128).astype(np.float32)
+            b = rng.standard_normal(128).astype(np.float32)
+            sim = Quantizer.cosine_similarity(a, b)
+            assert -1.0 - 1e-5 <= sim <= 1.0 + 1e-5
+
+
+# ── stride ────────────────────────────────────────────────────────────────────
+
+class TestStride:
+    def test_float32_stride_is_4x_dims(self):
+        q = Quantizer("float32")
+        assert q.stride(128) == 512
+
+    def test_float16_stride_is_2x_dims(self):
+        q = Quantizer("float16")
+        assert q.stride(384) == 768
+
+    def test_int8_stride_equals_dims(self):
+        q = Quantizer("int8")
+        assert q.stride(256) == 256
+
+    def test_binary_stride_is_ceil_div_8(self):
+        q = Quantizer("binary")
+        assert q.stride(8) == 1
+        assert q.stride(9) == 2
+        assert q.stride(64) == 8
+        assert q.stride(384) == 48

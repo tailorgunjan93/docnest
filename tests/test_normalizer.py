@@ -149,6 +149,30 @@ class TestTableNormalisation:
         doc = SectionNormaliser().normalise(raw)
         assert all(len(row) == 3 for row in doc.sections[0].tables[0].rows)
 
+    def test_rows_truncated_when_longer_than_headers(self):
+        """Rows longer than headers should be truncated to header count (line 79)."""
+        from docnest.models import TableData
+        s = Section(
+            id="", title="Data", level=1, text="",
+            tables=[TableData(table_id="t1", headers=["A", "B"],
+                              rows=[["1", "2", "3", "EXTRA"]])]
+        )
+        raw = RawDocument(doc_id="t", title="T", source="f", format="pdf", sections=[s])
+        doc = SectionNormaliser().normalise(raw)
+        assert all(len(row) == 2 for row in doc.sections[0].tables[0].rows)
+
+    def test_table_with_empty_headers_rows_unchanged(self):
+        """Table with 0 headers → skip normalization (line 73 continue)."""
+        from docnest.models import TableData
+        s = Section(
+            id="", title="Data", level=1, text="",
+            tables=[TableData(table_id="t1", headers=[], rows=[["a", "b", "c"]])]
+        )
+        raw = RawDocument(doc_id="t", title="T", source="f", format="pdf", sections=[s])
+        doc = SectionNormaliser().normalise(raw)
+        # Rows stay unchanged since there are no headers to define width
+        assert doc.sections[0].tables[0].rows == [["a", "b", "c"]]
+
     def test_rows_with_correct_length_unchanged(self):
         from docnest.models import TableData
         s = Section(

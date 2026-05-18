@@ -174,3 +174,62 @@ class TestFormatRouting:
         p = make_pipeline()
         with pytest.raises((ParseError, FileNotFoundError, Exception)):
             p.convert(str(tmp_path / "nonexistent.md"))
+
+
+# ── Folder conversion (Phase 7) ───────────────────────────────────────────────
+
+class TestFolderConversion:
+    def test_convert_folder_with_md_files_mocked_write_library(self, tmp_path: Path):
+        """Converting a folder calls write_library (which is Phase 7, NotImplemented)."""
+        from unittest.mock import patch as _patch
+        folder = tmp_path / "docs"
+        folder.mkdir()
+        (folder / "a.md").write_text("# Intro\n\nHello.\n\n## Details\n\nMore.\n", encoding="utf-8")
+        p = make_pipeline()
+        out_path = str(tmp_path / "docs.udf")
+        # write_library is NotImplementedError in Phase 7 stub — mock it
+        with _patch.object(p.writer, "write_library", return_value=out_path):
+            Path(out_path).write_bytes(b"fake")  # so path exists
+            result = p.convert(str(folder), output=out_path)
+        assert result == out_path
+
+    def test_convert_empty_folder_raises(self, tmp_path: Path):
+        """Empty folder with no supported files → DOCNESTError."""
+        from docnest.exceptions import DOCNESTError
+        empty = tmp_path / "empty_dir"
+        empty.mkdir()
+        p = make_pipeline()
+        with pytest.raises(DOCNESTError):
+            p.convert(str(empty))
+
+    def test_convert_folder_unsupported_files_skipped(self, tmp_path: Path):
+        """Unsupported files are skipped; only supported ones are processed."""
+        from docnest.exceptions import DOCNESTError
+        folder = tmp_path / "mixed"
+        folder.mkdir()
+        (folder / "ignore.txt").write_text("plain text", encoding="utf-8")
+        (folder / "ignore.py").write_text("code", encoding="utf-8")
+        p = make_pipeline()
+        # No supported files → DOCNESTError (all skipped)
+        with pytest.raises(DOCNESTError):
+            p.convert(str(folder))
+
+    def test_process_returns_document(self, sample_md_file: Path):
+        """pipeline.process() returns a Document with sections."""
+        from docnest.models import Document
+        p = make_pipeline()
+        doc = p.process(str(sample_md_file))
+        assert isinstance(doc, Document)
+        assert len(doc.sections) >= 2
+
+    def test_convert_with_meta_stores_owner(self, sample_md_file: Path, tmp_path: Path):
+        """DocMeta passed to convert() should be stored in the .udf manifest."""
+        import json, zipfile
+        from docnest.models import DocMeta
+        p = make_pipeline()
+        meta = DocMeta(owner="Bob", department="Finance", tags=["2026"])
+        out = str(tmp_path / "meta_test.udf")
+        result = p.convert(str(sample_md_file), output=out, meta=meta)
+        with zipfile.ZipFile(result) as zf:
+            manifest = json.loads(zf.read("manifest.json"))
+        assert manifest.get("owner") == "Bob"
