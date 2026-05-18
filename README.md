@@ -479,7 +479,7 @@ idx = UDFIndex.load("report.udf", vector="chroma",             # ChromaDB
 | **4** | UDF writer + reader + five-layer query engine | ✅ Done |
 | **5** | Large PDF chunking — full ML quality, bounded RAM | ✅ Done |
 | **6** | Library mode — multi-document cross-search | ✅ Done |
-| **7** | PyPI release `pip install docnest-ai` | 🔨 In Progress |
+| **7** | PyPI release `pip install docnest-ai` | ✅ Done |
 | **8** | Connectors: GitHub, Confluence, Notion, Jira | 📋 Planned |
 | **9** | Hierarchical supervisor+worker for datasets > 200 MB | 📋 Planned |
 
