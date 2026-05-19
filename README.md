@@ -590,8 +590,16 @@ python eval/rag_accuracy_eval.py
 | **5** | Large PDF chunking — full ML quality, bounded RAM | ✅ Done |
 | **6** | Library mode — multi-document cross-search | ✅ Done |
 | **7** | PyPI release `pip install docnest-ai` | ✅ Done |
-| **8** | Connectors: GitHub, Confluence, Notion, Jira | 📋 Planned |
-| **9** | Hierarchical supervisor+worker for datasets > 200 MB | 📋 Planned |
+| **8** | PPTX parser — slides, speaker notes, embedded tables | 📋 Planned |
+| **9** | EPUB parser — chapters, footnotes, embedded images | 📋 Planned |
+| **10** | XML parser — configurable tag-to-section mapping | 📋 Planned |
+| **11** | CSV / TSV parser — auto-header detection, multi-table files | 📋 Planned |
+| **12** | JSON / JSONL parser — nested object flattening, array tables | 📋 Planned |
+| **13** | ODT / ODS parser — OpenDocument text and spreadsheet | 📋 Planned |
+| **14** | RTF parser — rich text format documents | 📋 Planned |
+| **15** | LaTeX / TeX parser — sections, equations, bibliography | 📋 Planned |
+| **16** | Connectors: GitHub, Confluence, Notion, Jira | 📋 Planned |
+| **17** | Hierarchical supervisor+worker for datasets > 200 MB | 📋 Planned |
 
 Track detailed progress: [ROADMAP.md](ROADMAP.md)
 
