@@ -11,7 +11,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)](https://python.org)
 [![PyPI](https://img.shields.io/pypi/v/docnest-ai?color=green)](https://pypi.org/project/docnest-ai)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/docnest-ai?color=blue)](https://pypi.org/project/docnest-ai)
-[![Status](https://img.shields.io/badge/status-alpha-yellow)]()
+[![Status](https://img.shields.io/badge/status-beta-orange)]()
 [![Stars](https://img.shields.io/github/stars/tailorgunjan93/docnest?style=social)](https://github.com/tailorgunjan93/docnest)
 [![Contributors](https://img.shields.io/github/contributors/tailorgunjan93/docnest)](https://github.com/tailorgunjan93/docnest/graphs/contributors)
 

@@ -20,6 +20,24 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.4.0b1] — 2026-05-19
+
+### Fixed
+- `ExcelParser` (PR #6 — jlaportebot): row-length normalisation for `openpyxl` read-only mode
+  on Linux (variable-length rows padded/truncated to header width); multi-table detection per
+  sheet; clear `ParseError` raised for legacy `.xls` files; `Section` constructed with
+  `tables=` kwarg instead of post-construction assignment
+- `scikit-learn>=1.3` added to `[dev]` extras — `TFIDFSearchProvider` tests were failing on CI
+  (Linux) because the package was not installed in the test environment
+
+### Added
+- GitHub Actions issue-labeler bot: keyword → label mapping + tailored first-response comment
+- GitHub Actions welcome bot: first-time contributor detection + PR checklist
+- GitHub Actions stale bot: nudge at 45 days, close at 52 days, PRs exempt
+- Blog section in README linking to first dev.to post
+
+---
+
 ## [0.4.0] — 2026-05-17
 
 ### Added — Pluggable Vector Backends
