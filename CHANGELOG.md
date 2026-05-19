@@ -20,6 +20,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.4.0b2] — 2026-05-19
+
+### Fixed
+- `HTMLParser`: fully implemented using BeautifulSoup — walks h1–h6 headings,
+  extracts body text and `<table>` elements as `TableData` objects
+- `Section.section_id`: added as a property alias for `Section.id` to prevent
+  `AttributeError` in external tooling that expects `.section_id`
+- `UDFWriter`: `embedder` and `quantizer` are now optional constructor args;
+  writer can be instantiated without an LLM provider for structure-only export
+
+---
+
 ## [0.4.0b1] — 2026-05-19
 
 ### Fixed
