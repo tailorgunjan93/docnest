@@ -52,6 +52,11 @@ class Section(BaseModel):
     # Filled by Embedder + Quantizer (Stage 6)
     embedding: Optional[bytes] = Field(default=None, description="Quantised embedding bytes")
 
+    @property
+    def section_id(self) -> str:
+        """Alias for ``id`` — convenience accessor used by external tooling."""
+        return self.id
+
 
 class KeyNumber(BaseModel):
     """A metric or key figure extracted from the document."""

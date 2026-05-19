@@ -50,12 +50,12 @@ class UDFWriter:
 
     def __init__(
         self,
-        embedder: IEmbedder,
-        quantizer: Quantizer,
+        embedder: IEmbedder | None = None,
+        quantizer: Quantizer | None = None,
         storage: IStorageBackend | None = None,
     ) -> None:
         self.embedder  = embedder
-        self.quantizer = quantizer
+        self.quantizer = quantizer if quantizer is not None else Quantizer("float16")
         self.storage   = storage or ZipStorageBackend()
 
     # ------------------------------------------------------------------ #
@@ -91,12 +91,12 @@ class UDFWriter:
         out.parent.mkdir(parents=True, exist_ok=True)
 
         try:
-            # Step 1: Batch embed all sections
+            # Step 1: Batch embed all sections (skipped when no embedder provided)
             texts = [
                 (s.summary or s.title + " " + s.text[:300]).strip()
                 for s in doc.sections
             ]
-            vectors = self.embedder.embed(texts) if texts else []
+            vectors = self.embedder.embed(texts) if (texts and self.embedder) else []
 
             # Step 2: Quantize embeddings and attach to sections
             import numpy as np
