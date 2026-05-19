@@ -196,6 +196,18 @@ class ExcelParser(IParser):
         if not rows:
             return []
 
+        # Pre-scan: find the index of the first row that has 2+ non-empty cells.
+        # If such a row exists, any single-cell rows before it are merged-cell
+        # title rows (e.g. "Acme Corp Report 2024" spanning A1:F1) and should be
+        # skipped.  If NO multi-cell row exists (e.g. a single-column sheet),
+        # treat the very first row as the header so the sheet is not discarded.
+        first_multicell = next(
+            (i for i, r in enumerate(rows) if sum(1 for c in r if c.strip()) >= 2),
+            None,
+        )
+        # If the sheet is entirely single-column, start from row 0 (no skipping).
+        header_start = first_multicell if first_multicell is not None else 0
+
         result: list[tuple[list[str], list[list[str]]]] = []
         current_header: list[str] | None = None
         current_data: list[list[str]] = []
@@ -203,13 +215,8 @@ class ExcelParser(IParser):
 
         for i, row in enumerate(rows):
             if current_header is None:
-                # Skip merged-cell title rows: a row with only 1 non-empty cell
-                # is almost certainly a sheet title spanning merged columns,
-                # not a real column header.  Wait for the first row with 2+
-                # distinct non-empty cells.
-                non_empty = [c for c in row if c.strip()]
-                if len(non_empty) < 2:
-                    # Treat as a title — add to text but don't use as header
+                # Skip rows before header_start (merged-cell title rows).
+                if i < header_start:
                     continue
                 current_header = row
             elif (
