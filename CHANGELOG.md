@@ -10,13 +10,33 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Planned
-- PyPI release (`pip install docnest-ai`)
 - 85%+ test coverage + mypy passing
 - Docker image `ghcr.io/tailorgunjan93/docnest:latest`
 - PPTX parser
 - EPUB parser
 - GitHub / Confluence / Notion connectors
 - Hierarchical supervisor+worker sharding for datasets >200MB
+
+---
+
+## [0.4.0] — 2026-05-19
+
+### Added
+- **Multi-format RAG accuracy evaluation** (`eval/rag_accuracy_eval.py`): 38 questions
+  across 7 real-world documents in 5 formats, judged by Gemini 2.5 Pro — overall **8.9/10
+  average, 89% pass rate**. All structured formats (XLSX, DOCX, HTML, MD) score ≥ 9.2/10
+  with 100% pass rate.
+
+### Fixed
+- **`ExcelParser`**: merged-cell title rows (e.g. `A1:F1` header spanning all columns)
+  are now skipped when detecting the real column-header row. Previously this caused every
+  table to appear as a single-column table, losing all numeric cell values.
+- **`ExcelParser._table_text_summary`**: includes ALL data rows (previously capped at 5),
+  ensuring BM25 retrieval can find sections by their numeric content.
+
+### Stability
+- Promoted from beta (`0.4.0b3`) to stable after full multi-format evaluation passing the
+  8.5/10 accuracy threshold across all structured document formats.
 
 ---
 

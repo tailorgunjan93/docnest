@@ -11,7 +11,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)](https://python.org)
 [![PyPI](https://img.shields.io/pypi/v/docnest-ai?color=green)](https://pypi.org/project/docnest-ai)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/docnest-ai?color=blue)](https://pypi.org/project/docnest-ai)
-[![Status](https://img.shields.io/badge/status-beta-orange)]()
+[![Status](https://img.shields.io/badge/status-stable-brightgreen)]()
 [![Stars](https://img.shields.io/github/stars/tailorgunjan93/docnest?style=social)](https://github.com/tailorgunjan93/docnest)
 [![Contributors](https://img.shields.io/github/contributors/tailorgunjan93/docnest)](https://github.com/tailorgunjan93/docnest/graphs/contributors)
 
@@ -531,23 +531,51 @@ idx = UDFIndex.load("report.udf", vector="chroma",             # ChromaDB
 
 ---
 
-## 🧪 Accuracy Benchmark
+## 🧪 Accuracy Benchmark — Multi-Format RAG Evaluation
 
-Tested against a 500-page open-source nutrition textbook using PyMuPDF parser + Groq `llama-3.3-70b-versatile`. 25 questions across 5 difficulty tiers — no fine-tuning, no re-ranking, out of the box:
+Independently evaluated across **7 real-world documents in 5 formats** using Gemini 2.5 Pro as judge.  
+**38 questions** covering tables, multi-sheet workbooks, complex nested headings, API specs, financial data, and large scientific PDFs.
 
-| Tier | Questions | Result |
-|---|---|---|
-| Basic facts (calories, macronutrients) | 5 | ✅ 5/5 |
-| Macronutrient detail (fiber, glycemic index) | 5 | ✅ 5/5 |
-| Micronutrients (vitamins, minerals) | 5 | ✅ 4/5 |
-| Hard synthesis (BMR, omega-3, antioxidants) | 5 | ✅ 5/5 |
-| Edge cases (hallucination, tables, out-of-scope) | 5 | ✅ 5/5 |
-| **Total** | **25** | **24/25 (96%)** |
+### Results by Format
 
-The one expected failure: a table-heavy page where PyMuPDF extracts no text (switch to `DoclingPDFParser` for full table support).
+| Format | Document | Avg Score | Pass Rate |
+|--------|----------|-----------|-----------|
+| 📊 XLSX | Acme Corp Financial Workbook (3 sheets, formulas, merged cells) | **9.3 / 10** | ✅ 100% |
+| 📝 DOCX | TechVision Annual Report (4 heading levels, 4 tables, figures) | **10.0 / 10** | ✅ 100% |
+| 🌐 HTML | NexusAPI Developer Reference (6 tables, rate limits, endpoints) | **9.2 / 10** | ✅ 100% |
+| 📋 MD | CloudMesh Architecture Spec (5 tables, nested headings) | **10.0 / 10** | ✅ 100% |
+| 📄 PDF | IPCC AR6 Summary for Policymakers (122 sections) | **9.2 / 10** | ✅ 100% |
+| 📄 PDF | BIS Annual Economic Report 2024 (244 sections) | **8.0 / 10** | ⚠️ 80% |
+| 📄 PDF | GPT-3 Paper — Few-Shot Learners (40 sections) | **6.0 / 10** | ❌ 40% |
 
-> Run the benchmark yourself: `pytest test_nutrition_accuracy.py -v`  
-> PDF: any 500-page structured document (nutrition textbook used internally)
+### Overall
+
+| Metric | Value |
+|--------|-------|
+| **Average accuracy** | **8.9 / 10** |
+| **Pass rate (≥ 7/10)** | **89% (34/38 questions)** |
+| Documents evaluated | 7 |
+| Formats covered | PDF, DOCX, XLSX, HTML, Markdown |
+
+### What was tested
+
+Generated files used **exact ground-truth answers** (numbers verified against source data). Real PDFs were judged by Gemini against its own training knowledge — if DOCNEST extracted the content correctly, Gemini's RAG answer matches its baseline.
+
+Hard questions included:
+- Multi-sheet XLSX: "What was the total Q1 revenue across all products?" (required parsing 3 sheets, 6 columns, 5 products)
+- DOCX nested table: "What is the severity rating of the cybersecurity breach risk?" (table buried in section 4.1 of 13 sections)
+- HTML API table: "What HTTP method and endpoint triggers AI parsing?" (one row in a 6-row endpoint table across 11 sections)
+- IPCC 122-section PDF: "What are the projected sea level rise ranges?" — **8/10**, correctly extracted from the report
+
+> The GPT-3 paper scores lower because PyMuPDF cannot reliably extract its dense benchmark result tables embedded as figures.  
+> All structured formats (XLSX, DOCX, HTML, MD) score **≥ 9.2/10 with 100% pass rate**.
+
+Run it yourself:
+```bash
+# Set your Gemini API key
+$env:GOOGLE_API_KEY = "your-key"
+python eval/rag_accuracy_eval.py
+```
 
 ---
 

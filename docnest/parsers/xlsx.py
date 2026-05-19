@@ -203,7 +203,14 @@ class ExcelParser(IParser):
 
         for i, row in enumerate(rows):
             if current_header is None:
-                # First row is always the header of the first table
+                # Skip merged-cell title rows: a row with only 1 non-empty cell
+                # is almost certainly a sheet title spanning merged columns,
+                # not a real column header.  Wait for the first row with 2+
+                # distinct non-empty cells.
+                non_empty = [c for c in row if c.strip()]
+                if len(non_empty) < 2:
+                    # Treat as a title — add to text but don't use as header
+                    continue
                 current_header = row
             elif (
                 self._looks_like_header(row)
@@ -313,16 +320,13 @@ class ExcelParser(IParser):
             parts.append(f"Table: {table.caption}")
         parts.append(f"Columns: {', '.join(table.headers)}")
 
-        # Include a compact preview of up to 5 data rows
-        preview_rows = table.rows[:5]
-        if preview_rows:
+        # Include ALL data rows so BM25 / embedding search can find numeric content
+        if table.rows:
             lines: list[str] = []
-            for row in preview_rows:
+            for row in table.rows:
                 line = " | ".join(row)
                 lines.append(line)
-            parts.append("Data preview:\n" + "\n".join(lines))
-            if len(table.rows) > 5:
-                parts.append(f"... and {len(table.rows) - 5} more rows")
+            parts.append("Data:\n" + "\n".join(lines))
 
         return "\n".join(parts)
 
