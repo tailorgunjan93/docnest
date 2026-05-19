@@ -16,7 +16,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [0.4.1] — 2026-05-19
+## [0.4.2] — 2026-05-19
 
 ### Fixed
 - **`ExcelParser`**: single-column sheets (where every row has exactly one
