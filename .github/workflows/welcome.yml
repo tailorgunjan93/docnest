@@ -33,15 +33,12 @@ jobs:
                 owner: context.repo.owner,
                 repo:  context.repo.repo,
                 issue_number: context.payload.pull_request.number,
-                body: `
-  Hey @${creator}, welcome to DOCNEST! 🎉 Thanks for your first contribution.
-
-  A few things to make review smooth:
-  - [ ] Tests pass locally — \`pytest tests/ -v\`
-  - [ ] If you added a feature, there's at least one test for it
-  - [ ] If you changed a parser or query layer, the README reflects it
-
-  No pressure — we'll review and give feedback. Thanks again for taking the time! 🙏
-                `.trim(),
+                body:
+                  `Hey @${creator}, welcome to DOCNEST! 🎉 Thanks for your first contribution.\n\n` +
+                  "A few things to make review smooth:\n" +
+                  "- [ ] Tests pass locally — `pytest tests/ -v`\n" +
+                  "- [ ] If you added a feature, there's at least one test for it\n" +
+                  "- [ ] If you changed a parser or query layer, the README reflects it\n\n" +
+                  "No pressure — we'll review and give feedback. Thanks again for taking the time! 🙏",
               });
             }
