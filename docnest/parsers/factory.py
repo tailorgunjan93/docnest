@@ -125,6 +125,7 @@ class ParserFactory:
 
     def _build_default_registry(self, pdf_engine: str) -> None:
         """Populate the default parser registry."""
+        from docnest.parsers.csv import CSVParser
         from docnest.parsers.docx import DocxParser
         from docnest.parsers.xlsx import ExcelParser
         from docnest.parsers.html import HTMLParser
@@ -134,6 +135,7 @@ class ParserFactory:
         self._registry = [
             DocxParser(),
             ExcelParser(),
+            CSVParser(),
             HTMLParser(),
             MarkdownParser(),
         ]

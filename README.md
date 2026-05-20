@@ -326,6 +326,7 @@ factory = ParserFactory(pdf_engine="pymupdf")      # lightweight: PyMuPDF for PD
 raw = factory.get("report.pdf").parse("report.pdf")
 raw = factory.get("report.docx").parse("report.docx")
 raw = factory.get("data.xlsx").parse("data.xlsx")
+raw = factory.get("sales.csv").parse("sales.csv")     # also .tsv
 raw = factory.get("page.html").parse("page.html")
 raw = factory.get("notes.md").parse("notes.md")
 
@@ -467,6 +468,7 @@ DOCNEST resolves queries without sending full documents to the LLM:
 | PDF (scanned) | `DoclingPDFParser(ocr=True)` | OCR via Docling's Tesseract integration |
 | DOCX | `DocxParser` | Word documents with styles and heading levels |
 | XLSX | `ExcelParser` | Each sheet → section, all tables preserved |
+| CSV / TSV | `CSVParser` | Auto-detect delimiter (`,` `;` `\|` `\t`); encoding cascade; full table preserved |
 | HTML | `HTMLParser` | h1–h6 hierarchy via BeautifulSoup |
 | Markdown | `MarkdownParser` | ATX and Setext headings via mistletoe |
 
@@ -593,7 +595,7 @@ python eval/rag_accuracy_eval.py
 | **8** | PPTX parser — slides, speaker notes, embedded tables | 📋 Planned |
 | **9** | EPUB parser — chapters, footnotes, embedded images | 📋 Planned |
 | **10** | XML parser — configurable tag-to-section mapping | 📋 Planned |
-| **11** | CSV / TSV parser — auto-header detection, multi-table files | 📋 Planned |
+| **11** | CSV / TSV parser — auto-header detection, delimiter sniffing, encoding cascade | ✅ Done |
 | **12** | JSON / JSONL parser — nested object flattening, array tables | 📋 Planned |
 | **13** | ODT / ODS parser — OpenDocument text and spreadsheet | 📋 Planned |
 | **14** | RTF parser — rich text format documents | 📋 Planned |
