@@ -207,3 +207,74 @@ class TestDocumentOutput:
         raw = make_raw([(1, "A"), (2, "B"), (2, "C"), (1, "D")])
         doc = SectionNormaliser().normalise(raw)
         assert len(doc.sections) == 4
+
+
+# ── Level-skip compact §ids ──────────────────────────────────────────────────
+
+class TestLevelSkipCompactIds:
+    """Regression tests for skipped heading levels producing compact §ids.
+
+    Before the fix, skipping levels (e.g. H1→H3 without H2) produced
+    zero-padded IDs like §1.0.1 instead of the compact §1.1.
+    """
+
+    def test_h1_to_h3_compact_id(self):
+        """H1→H3 skip should produce §1.1, not §1.0.1."""
+        raw = make_raw([(1, "Top"), (3, "Deep")])
+        doc = SectionNormaliser().normalise(raw)
+        assert doc.sections[0].id == "§1"
+        assert doc.sections[1].id == "§1.1"
+
+    def test_h1_to_h6_compact_id(self):
+        """H1→H6 skip should produce §1.1, not §1.0.0.0.0.1."""
+        raw = make_raw([(1, "Top"), (6, "Deepest")])
+        doc = SectionNormaliser().normalise(raw)
+        assert doc.sections[1].id == "§1.1"
+
+    def test_h1_to_h4_then_h2_sibling(self):
+        """H1→H4→H2: H2 should be §1.2 (sibling of H4), not a child."""
+        raw = make_raw([(1, "H1"), (4, "H4"), (2, "H2")])
+        doc = SectionNormaliser().normalise(raw)
+        assert [s.id for s in doc.sections] == ["§1", "§1.1", "§1.2"]
+        # H2's parent is H1 (level 2 > level 1), NOT H4 (level 4 > level 2)
+        assert doc.sections[2].parent_id == "§1"
+
+    def test_h1_to_h3_to_h2_to_h3(self):
+        """H1→H3→H2→H3: H3 after H2 is a child of H2."""
+        raw = make_raw([(1, "H1"), (3, "H3a"), (2, "H2"), (3, "H3b")])
+        doc = SectionNormaliser().normalise(raw)
+        assert [s.id for s in doc.sections] == ["§1", "§1.1", "§1.2", "§1.2.1"]
+        # H3b's parent is H2 (the nearest heading with lower level)
+        assert doc.sections[3].parent_id == "§1.2"
+
+    def test_h1_to_h5_to_h3_pops_deep(self):
+        """H1→H5→H3: H3 pops H5 (since 3 < 5) and becomes child of H1."""
+        raw = make_raw([(1, "H1"), (5, "H5"), (3, "H3")])
+        doc = SectionNormaliser().normalise(raw)
+        assert [s.id for s in doc.sections] == ["§1", "§1.1", "§1.2"]
+        assert doc.sections[2].parent_id == "§1"
+
+    def test_multiple_h3_after_h1(self):
+        """H1→H3→H3: both H3s are depth-1 children of H1."""
+        raw = make_raw([(1, "H1"), (3, "H3a"), (3, "H3b")])
+        doc = SectionNormaliser().normalise(raw)
+        assert [s.id for s in doc.sections] == ["§1", "§1.1", "§1.2"]
+
+    def test_compact_id_parent_child_consistency(self):
+        """§id depth must always equal parent's depth + 1."""
+        raw = make_raw([
+            (1, "H1"), (4, "H4"), (2, "H2"), (3, "H3"),
+            (1, "H1b"), (5, "H5"),
+        ])
+        doc = SectionNormaliser().normalise(raw)
+        id_depths = {}
+        for s in doc.sections:
+            id_depths[s.id] = s.id.count(".")
+        for s in doc.sections:
+            if s.parent_id is not None:
+                parent_depth = id_depths[s.parent_id]
+                child_depth = id_depths[s.id]
+                assert child_depth == parent_depth + 1, (
+                    f"{s.id} (depth {child_depth}) should be "
+                    f"one deeper than {s.parent_id} (depth {parent_depth})"
+                )
