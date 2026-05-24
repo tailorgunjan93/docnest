@@ -716,7 +716,7 @@ MIT — free for commercial use. See [LICENSE](LICENSE).
 |---|---|
 | [docnest](https://github.com/tailorgunjan93/docnest) | This library — document normalization engine |
 | [udf-spec](https://github.com/tailorgunjan93/udf-spec) | Open specification for the `.udf` format |
-| [knovex](https://github.com/tailorgunjan93/knovex) | Desktop RAG app (Tauri) powered by DOCNEST |
+| [knovex](https://github.com/tailorgunjan93/knovex) | Desktop RAG app powered by DOCNEST |
 | [udf-reader-vscode](https://github.com/tailorgunjan93/udf-reader-vscode) | VS Code extension for `.udf` files |
 
 ---
