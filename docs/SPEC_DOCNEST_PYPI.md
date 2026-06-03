@@ -470,7 +470,7 @@ class Document(BaseModel):
 class Catalogue(BaseModel):
     doc_id: str
     title: str
-    source: str
+    source: str                      # basename by default (privacy); full path is opt-in
     summary: str
     insights: list[str]
     key_numbers: list[dict]

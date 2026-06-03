@@ -169,6 +169,10 @@ docnest convert report.pdf \
   --owner "Alice Smith" \
   --department "Finance" \
   --tags "q4,2024,revenue"
+
+# Privacy: by default the .udf stores only the source basename (e.g. report.pdf),
+# never your absolute path. Pass --include-source-path to keep the full path.
+docnest convert report.pdf --include-source-path
 ```
 
 ### Query a document
@@ -443,6 +447,11 @@ document.udf  (zip)
 
 > **`embeddings.bin`** is a flat binary blob: `N × D × 2 bytes` (float16).  
 > Legacy base64-per-section format is still read for backward compatibility.
+
+> **🔒 Privacy by default:** `catalogue.json` stores only the source **basename**
+> (e.g. `report.pdf`) — never your absolute filesystem path — so a shared `.udf` never
+> leaks your username, directory layout, or OS. Pass `--include-source-path` (CLI) or
+> `include_source_path=True` (`convert()` / `UDFWriter.write()`) to keep the full path.
 
 ---
 
