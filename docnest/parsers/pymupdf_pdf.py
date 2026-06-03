@@ -15,11 +15,14 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from docnest.parsers.base import IParser
 from docnest.models import RawDocument, Section, TableData
 from docnest.exceptions import ParseError
+
+if TYPE_CHECKING:
+    from docnest.providers.ocr import IOCRProvider
 
 
 class PyMuPDFParser(IParser):
@@ -33,13 +36,61 @@ class PyMuPDFParser(IParser):
         raw = parser.parse("/path/to/resume.pdf")
     """
 
-    def __init__(self, heading_threshold: float = 1.15) -> None:
+    def __init__(
+        self,
+        heading_threshold: float = 1.15,
+        ocr: bool = False,
+        ocr_provider: "IOCRProvider | None" = None,
+        ocr_languages: Optional[list[str]] = None,
+        ocr_dpi: int = 200,
+        ocr_max_px: int = 2000,
+        text_layer_min_chars: int = 20,
+    ) -> None:
         """
         Args:
             heading_threshold: Font size multiplier above median to be a heading.
                                Default 1.15 = 15% larger than median body text.
+            ocr: Enable OCR fallback for image-only pages (default off — text PDFs
+                 need no OCR). When on, pages whose text layer has fewer than
+                 ``text_layer_min_chars`` characters are rendered and OCR'd.
+            ocr_provider: An IOCRProvider to use. Default None → EasyOCRProvider
+                 (when ``ocr=True``), falling back to NullOCRProvider if EasyOCR
+                 is not installed.
+            ocr_languages: OCR language codes (e.g. ["hi", "en"]). Default ["en"].
+            ocr_dpi: Render DPI for OCR (higher = sharper but slower). Default 200.
+            ocr_max_px: Downscale the rendered page so its longest edge is at most
+                 this many pixels — bounds OCR time on large images. Default 2000.
+            text_layer_min_chars: A page with at least this many characters in its
+                 text layer is treated as a text page (no OCR). Default 20.
         """
         self.heading_threshold = heading_threshold
+        self._ocr = ocr
+        self._ocr_dpi = ocr_dpi
+        self._ocr_max_px = ocr_max_px
+        self._text_layer_min_chars = text_layer_min_chars
+        self._ocr_provider = self._resolve_ocr_provider(ocr, ocr_provider, ocr_languages)
+
+    @staticmethod
+    def _resolve_ocr_provider(
+        ocr: bool,
+        provider: "IOCRProvider | None",
+        languages: Optional[list[str]],
+    ) -> "IOCRProvider | None":
+        """Pick the OCR provider. Default EasyOCR; graceful fallback to no-op."""
+        if not ocr or provider is not None:
+            return provider
+        import warnings
+        from docnest.providers.ocr import EasyOCRProvider, NullOCRProvider
+        candidate = EasyOCRProvider(languages=languages or ["en"])
+        if candidate.available:
+            return candidate
+        warnings.warn(
+            "OCR requested but EasyOCR is not installed — falling back to no-op OCR. "
+            "Install with: pip install docnest-ai[ocr-easyocr]",
+            RuntimeWarning,
+            stacklevel=3,
+        )
+        return NullOCRProvider()
 
     def supports(self, file_path: str) -> bool:
         return file_path.lower().endswith(".pdf")
@@ -111,7 +162,31 @@ class PyMuPDFParser(IParser):
                             "size": round(span.get("size", 10), 1),
                             "bold": bool(span.get("flags", 0) & 2**4),  # bold flag
                         })
+
+            # OCR fallback: only for image-only / near-empty text pages, and only
+            # when OCR is enabled. Text pages are never OCR'd (fast).
+            if self._ocr and self._ocr_provider is not None:
+                layer = page.get_text("text").strip()  # type: ignore[attr-defined]
+                if len(layer) < self._text_layer_min_chars:
+                    ocr_text = self._ocr_page(page)
+                    if ocr_text.strip():
+                        # Uniform size → treated as body text (a scan has no font info)
+                        blocks.append({"text": ocr_text.strip(), "size": 10.0, "bold": False})
         return blocks
+
+    def _ocr_page(self, page: object) -> str:
+        """Render a page to PNG (downscaled) and OCR it via the provider.
+
+        Never raises — returns "" on any failure so a bad page can't crash parsing.
+        """
+        try:
+            pix = page.get_pixmap(dpi=self._ocr_dpi)  # type: ignore[attr-defined]
+            png = pix.tobytes("png")
+            if max(pix.width, pix.height) > self._ocr_max_px:
+                png = _downscale_png(png, self._ocr_max_px)
+            return self._ocr_provider.extract_text(png)  # type: ignore[union-attr]
+        except Exception:
+            return ""
 
     def _median_font_size(self, blocks: list[dict]) -> float:
         """Compute the median font size across all blocks."""
@@ -181,6 +256,29 @@ class PyMuPDFParser(IParser):
             sections.append(current)
 
         return sections
+
+
+def _downscale_png(png_bytes: bytes, max_px: int) -> bytes:
+    """Downscale a PNG so its longest edge is at most ``max_px`` pixels.
+
+    Bounds OCR time on large page images. Returns the original bytes unchanged if
+    it already fits or if Pillow is unavailable.
+    """
+    try:
+        import io
+        from PIL import Image  # type: ignore[import]
+        img = Image.open(io.BytesIO(png_bytes))
+        w, h = img.size
+        longest = max(w, h)
+        if longest <= max_px:
+            return png_bytes
+        scale = max_px / float(longest)
+        img = img.resize((max(1, int(w * scale)), max(1, int(h * scale))))
+        out = io.BytesIO()
+        img.save(out, "PNG")
+        return out.getvalue()
+    except Exception:
+        return png_bytes
 
 
 def _filename_to_title(stem: str) -> str:
