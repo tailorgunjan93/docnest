@@ -123,29 +123,31 @@ class TestProviderResolution:
 
 # ── Gated real-OCR e2e (set DOCNEST_OCR_PDF_DIR + install easyocr to run) ─────
 
-_PDF_DIR = os.environ.get("DOCNEST_OCR_PDF_DIR")
+# Point these at YOUR OWN local PDFs to run the real-OCR e2e. No paths/filenames are
+# committed (the sample PDFs may contain personal data — they must never be in the repo).
+#   DOCNEST_OCR_HINDI_PDF -> a scanned/image PDF whose text is Hindi (Devanagari).
+#   DOCNEST_OCR_TEXT_PDF  -> a PDF that already has a text layer (should NOT be OCR'd).
+_HINDI_PDF = os.environ.get("DOCNEST_OCR_HINDI_PDF")
+_TEXT_PDF = os.environ.get("DOCNEST_OCR_TEXT_PDF")
 
 requires_real = pytest.mark.skipif(
-    not (_PDF_DIR and _has("easyocr")),
-    reason="set DOCNEST_OCR_PDF_DIR to a folder with the test PDFs + install easyocr",
+    not _has("easyocr"), reason="install easyocr to run the real-OCR e2e"
 )
 
 
 @requires_real
 class TestRealOCR:
     def test_hindi_image_pdf_extracts_devanagari(self):
-        pdf = Path(_PDF_DIR) / "dhundhotsav_invitation_2.pdf"
-        if not pdf.exists():
-            pytest.skip(f"missing {pdf.name}")
-        raw = PyMuPDFParser(ocr=True, ocr_languages=["hi", "en"]).parse(str(pdf))
+        if not (_HINDI_PDF and Path(_HINDI_PDF).exists()):
+            pytest.skip("set DOCNEST_OCR_HINDI_PDF to a scanned Hindi PDF")
+        raw = PyMuPDFParser(ocr=True, ocr_languages=["hi", "en"]).parse(_HINDI_PDF)
         text = " ".join(s.text for s in raw.sections)
         deva = sum(1 for c in text if "ऀ" <= c <= "ॿ")
         assert deva > 200
 
     def test_textlayer_pdf_skips_ocr(self):
-        pdf = Path(_PDF_DIR) / "TMJ_Exercises_Color_Diagram.pdf"
-        if not pdf.exists():
-            pytest.skip(f"missing {pdf.name}")
+        if not (_TEXT_PDF and Path(_TEXT_PDF).exists()):
+            pytest.skip("set DOCNEST_OCR_TEXT_PDF to a text-layer PDF")
         spy = SpyOCR()
-        PyMuPDFParser(ocr=True, ocr_provider=spy).parse(str(pdf))
+        PyMuPDFParser(ocr=True, ocr_provider=spy).parse(_TEXT_PDF)
         assert spy.calls == 0  # has a text layer -> no OCR
