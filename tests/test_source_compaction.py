@@ -151,11 +151,25 @@ class TestPipelineSourceCompaction:
 # ── Functional: CLI flag is wired ───────────────────────────────────────────
 
 class TestCliFlag:
-    def test_help_lists_include_source_path(self):
+    def test_cli_recognises_include_source_path_flag(self):
+        """The flag is wired into `convert`.
+
+        Env-independent: asserts the parser RECOGNISES the option, rather than
+        scraping `--help` text (Rich wraps/truncates help by terminal width, which
+        differs between a local terminal and a headless CI runner — that made the
+        old `--help` assertion pass locally but fail in CI).
+
+        Invoke with a missing source: an unknown option exits 2 with "No such
+        option"; a recognised option parses fine and then fails the missing-source
+        check (exit 1).
+        """
         from typer.testing import CliRunner
         from docnest.cli import app
-        result = CliRunner().invoke(app, ["convert", "--help"])
-        assert "--include-source-path" in result.output
+        result = CliRunner().invoke(
+            app, ["convert", "definitely_missing_file_xyz.md", "--include-source-path"]
+        )
+        assert "No such option" not in result.output
+        assert result.exit_code == 1
 
 
 # ── Regression / backward-compat: full-path .udf still loads & queries ──────
