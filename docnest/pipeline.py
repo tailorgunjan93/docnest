@@ -212,6 +212,7 @@ class DocNestPipeline:
         output: Optional[str] = None,
         include_originals: bool = False,
         meta: Optional[DocMeta] = None,
+        include_source_path: bool = False,
     ) -> str:
         """Convert a document or folder to a .udf file.
 
@@ -220,6 +221,8 @@ class DocNestPipeline:
             output: Output .udf path. Defaults to source with .udf extension.
             include_originals: Embed source files inside the .udf archive.
             meta: Optional DocMeta with owner, department, tags, etc.
+            include_source_path: If True, store the full original path in the .udf.
+                Default False stores only the basename (privacy-safe, portable).
 
         Returns:
             Absolute path to the created .udf file.
@@ -235,7 +238,7 @@ class DocNestPipeline:
         if meta:
             doc.meta = meta
         out_path = output or str(path.with_suffix(".udf"))
-        result = self.writer.write(doc, out_path, include_originals)
+        result = self.writer.write(doc, out_path, include_originals, include_source_path)
         self.on_stage_complete("write", result)
         return result
 

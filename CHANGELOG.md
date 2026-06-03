@@ -9,6 +9,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **Privacy (input custody):** `.udf` files now store only the source **basename** in
+  `catalogue.json` by default (e.g. `report.md`) instead of the author's absolute
+  filesystem path — a shared `.udf` no longer leaks username / directory layout / OS.
+  URLs (connector sources) are preserved verbatim. Opt back in to the full path with
+  `--include-source-path` (CLI) or `include_source_path=True`
+  (`DocNestPipeline.convert` / `UDFWriter.write`). No `UDF_VERSION` change; existing
+  `.udf` files load unchanged.
+
 ### Planned
 - JSON / JSONL parser
 - PPTX parser
