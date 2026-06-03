@@ -56,12 +56,35 @@ class DoclingPDFParser(IParser):
         images_scale: float = 1.0,
         chunk_pages: int = 0,
         pdf_backend: str = "pypdfium2",
+        ocr_engine: str = "auto",
+        ocr_lang: Optional[list[str]] = None,
+        tesseract_cmd: Optional[str] = None,
+        tessdata_path: Optional[str] = None,
+        force_full_page_ocr: bool = False,
     ) -> None:
         """Initialise the PDF parser.
 
         Args:
             ocr: Enable OCR for scanned PDFs (requires downloading ML models).
                  Default False — text-based PDFs don't need OCR.
+            ocr_engine: Which OCR engine to use when ``ocr=True``.
+                 ``"auto"`` (default) — Docling's built-in default (RapidOCR;
+                 Latin/CJK scripts). ``"easyocr"`` — EasyOCR, pure-Python (no
+                 system binary), supports Devanagari/Hindi and many scripts.
+                 ``"tesseract"`` — Tesseract CLI (needs the system binary +
+                 language packs), also supports Devanagari/Hindi.
+            ocr_lang: OCR language codes for the chosen engine. Engine-specific:
+                 EasyOCR uses 2-letter codes (``["hi", "en"]``); Tesseract uses
+                 ISO 639-2 codes (``["hin", "eng"]``). Default None → the
+                 engine's own default.
+            tesseract_cmd: Path to the ``tesseract`` executable (Tesseract engine
+                 only). Default None → resolve ``tesseract`` from PATH.
+            tessdata_path: Directory holding Tesseract ``*.traineddata`` files
+                 (Tesseract engine only). Default None → Tesseract's own default
+                 / the ``TESSDATA_PREFIX`` environment variable.
+            force_full_page_ocr: OCR the entire page rather than only detected
+                 bitmap regions — needed for fully-scanned/image pages. Default
+                 False.
             table_structure: Use ML table structure analysis. Default True,
                  set False for faster parsing without ML model downloads.
             generate_images: Render page/picture images (increases RAM usage
@@ -85,6 +108,11 @@ class DoclingPDFParser(IParser):
         self._images_scale = images_scale
         self._chunk_pages = chunk_pages
         self._pdf_backend = pdf_backend
+        self._ocr_engine = ocr_engine
+        self._ocr_lang = ocr_lang
+        self._tesseract_cmd = tesseract_cmd
+        self._tessdata_path = tessdata_path
+        self._force_full_page_ocr = force_full_page_ocr
         # Lazy-loaded — Docling model init is expensive (~3-5 s first call)
         self._converter: object | None = None
 
@@ -189,6 +217,15 @@ class DoclingPDFParser(IParser):
         title = self._extract_title(doc, path)
         sections = self._build_sections(doc, doc)
 
+        # Full-page OCR fallback: when a page is a single image, Docling places
+        # the OCR'd text in ``doc.texts`` but the body tree (iterate_items) holds
+        # only the picture — so _build_sections recovers no text. Rebuild from
+        # ``doc.texts`` directly so scanned/image-only pages aren't lost.
+        if not any((s.text or "").strip() for s in sections):
+            recovered = self._sections_from_texts(doc)
+            if recovered:
+                sections = recovered
+
         return RawDocument(
             doc_id=self._make_doc_id(original_path),
             title=title,
@@ -290,6 +327,53 @@ class DoclingPDFParser(IParser):
             pipeline_opts = PdfPipelineOptions()
             pipeline_opts.do_ocr = self._ocr
             pipeline_opts.do_table_structure = self._table_structure
+
+            # Select a non-default OCR engine when requested. Both EasyOCR and
+            # Tesseract support scripts (incl. Devanagari/Hindi) the default
+            # engine can't. EasyOCR is pure-Python (no system binary); Tesseract
+            # uses its CLI binary.
+            if self._ocr and self._ocr_engine == "easyocr":
+                try:
+                    from docling.datamodel.pipeline_options import (  # type: ignore[import]
+                        EasyOcrOptions,
+                    )
+                    ocr_opts = EasyOcrOptions(
+                        force_full_page_ocr=self._force_full_page_ocr,
+                    )
+                    if self._ocr_lang:
+                        ocr_opts.lang = self._ocr_lang
+                    pipeline_opts.ocr_options = ocr_opts
+                except ImportError:
+                    import warnings
+                    warnings.warn(
+                        "EasyOCR options unavailable in this Docling build; "
+                        "falling back to the default OCR engine.",
+                        RuntimeWarning,
+                        stacklevel=3,
+                    )
+            elif self._ocr and self._ocr_engine == "tesseract":
+                try:
+                    from docling.datamodel.pipeline_options import (  # type: ignore[import]
+                        TesseractCliOcrOptions,
+                    )
+                    ocr_opts = TesseractCliOcrOptions(
+                        force_full_page_ocr=self._force_full_page_ocr,
+                    )
+                    if self._ocr_lang:
+                        ocr_opts.lang = self._ocr_lang
+                    if self._tesseract_cmd:
+                        ocr_opts.tesseract_cmd = self._tesseract_cmd
+                    if self._tessdata_path:
+                        ocr_opts.path = self._tessdata_path
+                    pipeline_opts.ocr_options = ocr_opts
+                except ImportError:
+                    import warnings
+                    warnings.warn(
+                        "Tesseract OCR options unavailable in this Docling build; "
+                        "falling back to the default OCR engine.",
+                        RuntimeWarning,
+                        stacklevel=3,
+                    )
             # Disable image rendering by default — each page image can consume
             # 50-200 MB of RAM, triggering std::bad_alloc on large PDFs.
             pipeline_opts.generate_page_images = self._generate_images
@@ -393,6 +477,38 @@ class DoclingPDFParser(IParser):
                     if current is None:
                         current = Section(id="", title="Figures", level=1, text="")
                     current.images.append(image_ref)
+
+        if current is not None:
+            current.text = current.text.strip()
+            sections.append(current)
+
+        return sections
+
+    def _sections_from_texts(self, doc: object) -> list[Section]:
+        """Build sections from Docling's flat ``doc.texts`` list.
+
+        Fallback for pages where the body tree holds no text items (e.g. a
+        full-page image whose OCR'd text Docling keeps in ``doc.texts`` only).
+        Groups by heading just like :meth:`_build_sections`.
+        """
+        sections: list[Section] = []
+        current: Optional[Section] = None
+
+        for item in getattr(doc, "texts", []) or []:
+            label = str(getattr(item, "label", "")).lower()
+            if label in _IGNORE_LABELS:
+                continue
+            text = (getattr(item, "text", "") or "").strip()
+
+            if label in _HEADING_LABELS:
+                if current is not None:
+                    current.text = current.text.strip()
+                    sections.append(current)
+                current = Section(id="", title=text or "Section", level=1, text="")
+            elif text:
+                if current is None:
+                    current = Section(id="", title="Introduction", level=1, text="")
+                current.text += text + "\n\n"
 
         if current is not None:
             current.text = current.text.strip()
