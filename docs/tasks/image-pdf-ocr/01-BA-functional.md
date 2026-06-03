@@ -4,7 +4,7 @@
 Scanned/image PDFs carry their text as **pixels**, not characters. Today docnest's fast
 parser (`PyMuPDFParser`) extracts **nothing** from them, and the ML parser
 (`DoclingPDFParser`) is heavy and (in some envs) fragile. Real example: a 1-page, 5.2 MB
-Hindi invitation (`dhundhotsav`) → PyMuPDF extracts **0 chars**. Users with scanned docs —
+Hindi image PDF (a 1-page scan) → PyMuPDF extracts **0 chars**. Users with scanned docs —
 **in Hindi and English** — get empty knowledge bases. This blocks the "works on
 everything" mission and the **Reliable** pillar.
 
@@ -19,9 +19,9 @@ everything" mission and the **Reliable** pillar.
 - `DoclingPDFParser` OCR remains available as an opt-in **high-quality** option.
 
 ### Acceptance criteria
-1. `dhundhotsav` (Hindi image PDF) with OCR on → **Devanagari text extracted** (≥ ~400
+1. The Hindi image sample with OCR on → **Devanagari text extracted** (≥ ~400
    Devanagari chars, coherent).
-2. `TMJ` (has a text layer) → **no OCR performed**; text comes from the layer; **fast**.
+2. The text-layer sample → **no OCR performed**; text comes from the layer; **fast**.
 3. Pure text PDFs → behaviour **unchanged**; **no OCR** by default.
 4. OCR **off by default**; enabling needs an explicit option + an installed engine.
 5. Engine missing → **graceful** (no crash; clear signal), tests skip.

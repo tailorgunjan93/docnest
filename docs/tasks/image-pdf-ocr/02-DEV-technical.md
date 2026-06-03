@@ -6,8 +6,8 @@ Environment: Store Python 3.11, `easyocr`+`torch 2.12 cpu` installed; `docling` 
 
 | PDF | pages | text layer | OCR (EasyOCR hi+en, CPU) | result |
 |---|---|---|---|---|
-| `dhundhotsav` (Hindi image) | 1, 5.2 MB | 0 chars | render 0.83s + **OCR 50.7s** | 667 chars, **526 Devanagari**, coherent ✅ |
-| `TMJ` (English) | 1, 2 KB | 35 chars | **OCR 27.4s** → only 24 chars (worse!) | proves: **use the text layer, don't OCR** |
+| Hindi image sample | 1, 5.2 MB | 0 chars | render 0.83s + **OCR 50.7s** | 667 chars, **526 Devanagari**, coherent ✅ |
+| Text-layer sample (English) | 1, 2 KB | 35 chars | **OCR 27.4s** → only 24 chars (worse!) | proves: **use the text layer, don't OCR** |
 | reader build + models | — | — | 13.0s one-time | amortised |
 
 **Conclusions:** (1) OCR is the cost — skip it whenever a text layer exists. (2) The
@@ -38,7 +38,7 @@ Add OCR to `PyMuPDFParser`, behind the existing `IOCRProvider` wrapper:
 - `DoclingPDFParser` OCR untouched (heavy option); the WIP gets committed as that option.
 
 ## DSA / performance
-- Text-layer check: O(page text) — negligible; **eliminates OCR on text pages** (TMJ 27s→~0).
+- Text-layer check: O(page text) — negligible; **eliminates OCR on text pages** (text-layer sample 27s→~0).
 - Downscale: caps OCR input pixels → bounds per-image OCR time.
 - Per-page OCR is O(pixels); inherent to the engine — we minimise *when* and *how big*.
 

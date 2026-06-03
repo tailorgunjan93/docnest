@@ -6,9 +6,9 @@
 - Nothing changes for normal text PDFs; OCR is opt-in.
 
 ## Test scenarios
-1. **Hindi image PDF** (`dhundhotsav`) + OCR on → ≥ ~400 Devanagari chars, coherent
+1. **Hindi image sample** + OCR on → ≥ ~400 Devanagari chars, coherent
    (names/date/venue present). *(real fixture)*
-2. **Text-layer page** (`TMJ`) → **no OCR call**; text from layer; sub-second.
+2. **Text-layer sample** → **no OCR call**; text from layer; sub-second.
 3. **Pure text PDF** (e.g. an eval paper) → identical output with OCR off.
 4. **OCR off by default** → no engine needed, no behaviour change.
 5. **Language config** `["hi","en"]` honoured.
@@ -31,6 +31,6 @@
 - **Unit (offline, mock OCR):** text-layer-present → OCR provider **not** called; image-only
   page → provider called once; downscale caps dimensions; languages passed through;
   engine-missing → graceful.
-- **Gated real-OCR e2e:** run `dhundhotsav` (assert Devanagari extracted) + `TMJ`
+- **Gated real-OCR e2e:** run the Hindi image sample (assert Devanagari extracted) + the text-layer sample
   (assert text-layer used, no OCR) — **skipped** when no engine / fixtures absent, like the
   CLI e2e gate.

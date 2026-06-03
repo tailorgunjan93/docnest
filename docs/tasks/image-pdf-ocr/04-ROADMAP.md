@@ -14,9 +14,9 @@ Docling OCR kept as an opt-in heavy/high-quality option.
 | 6 | 7 — Git/Release | Branch → merge → push; batch PyPI with prior tasks | Low | owner |
 
 ## Dependencies / notes
-- Real fixtures: `dhundhotsav` (Hindi image) + `TMJ` (text layer) — used for the gated e2e.
-  Decide whether to commit them to `tests/fixtures/` (privacy: the invitation has family
-  names — see open decision).
+- Real fixtures: a Hindi image sample + a text-layer sample — used for the gated e2e.
+  They are **not** committed (may contain personal data); the e2e points at local paths
+  via env vars and skips otherwise.
 - EasyOCR/torch already installed locally; Tesseract path also supported via `IOCRProvider`.
 - Docling import is broken in this env (`tokenizers` pin) — **out of scope** for the
   lightweight path; note it for a separate env/deps fix.
@@ -29,8 +29,8 @@ Docling OCR kept as an opt-in heavy/high-quality option.
 - M5: merged to main (release batched).
 
 ## Open decisions for owner
-1. **Commit the real PDFs as test fixtures?** `dhundhotsav` contains family names/venue
-   (personal). Options: (a) don't commit — keep gated e2e pointing at local paths / skip in
-   CI; (b) commit a **redacted/synthetic** Hindi image instead; (c) commit as-is. *(default: a)*
+1. **Commit real PDFs as test fixtures?** The Hindi sample contains personal data.
+   **Resolved: (a) do not commit** — the gated e2e points at local paths via env vars and
+   skips in CI. (A redacted/synthetic Hindi image could be added later if desired.)
 2. **Default OCR engine** when `ocr=True` but none specified — EasyOCR (installed, Hindi) vs
    Tesseract (lighter, needs binary)?

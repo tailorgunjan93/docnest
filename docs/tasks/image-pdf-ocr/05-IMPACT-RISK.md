@@ -33,7 +33,7 @@ page and OCR it via an `IOCRProvider`. OCR-off path stays byte-for-byte unchange
 - `DoclingPDFParser` untouched here.
 
 ## NFR check
-- Text pages: O(text) layer check, **no OCR** → ~0 cost (TMJ 27s→~0).
+- Text pages: O(text) layer check, **no OCR** → ~0 cost (text-layer sample 27s→~0).
 - Image pages: OCR bounded by `ocr_dpi`/`ocr_max_px` (downscale); inherent engine cost minimised.
 - Privacy/local-first preserved; OCR engine optional & graceful.
 

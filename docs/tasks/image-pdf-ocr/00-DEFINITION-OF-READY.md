@@ -8,6 +8,6 @@
 - **Owner:** Gunjan Tailor. **Priority:** Plan-A Task 3 (image PDFs).
 - **Acceptance criteria drafted:** ✅ (BA doc).
 - **Owner go:** ✅ ("start phase 0"; chose lightweight path + skip-text-pages).
-- **Real test data captured:** ✅ (see Dev doc — dhundhotsav + TMJ, timed).
+- **Real test data captured:** ✅ (see Dev doc — a Hindi image sample + a text-layer sample, timed).
 
 **DoR GATE: PASSED** → Phase 0 documented below.

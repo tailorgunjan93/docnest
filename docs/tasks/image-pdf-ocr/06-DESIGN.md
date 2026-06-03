@@ -2,7 +2,7 @@
 
 ## 1. DSA / performance
 - **Text-layer gate (per page):** `len(page.get_text("text").strip()) >= text_layer_min_chars`
-  → O(page text), negligible; **eliminates OCR on text pages** (the big win: TMJ 27s→~0).
+  → O(page text), negligible; **eliminates OCR on text pages** (the big win: text-layer sample 27s→~0).
 - **Downscale:** cap the rendered image's long edge to `ocr_max_px` → bounds OCR input pixels,
   cutting EasyOCR time on huge images with minor accuracy loss.
 - Per-page OCR is O(pixels) (engine-inherent); we minimise *when* (skip text pages) and
@@ -86,8 +86,8 @@ raise `ImportError`, the parser guards with `.available`; OCR errors already ret
 - **Offline unit (mock `IOCRProvider`):** text-layer page → provider **not** called;
   image-only page → provider called once; `_downscale_png` caps dimensions; `ocr_languages`
   passed to default EasyOCR; engine-missing → `NullOCRProvider` fallback (no crash).
-- **Gated real e2e (local PDFs, skip in CI):** `dhundhotsav` → Devanagari extracted;
-  `TMJ` → text layer used, OCR **not** invoked.
+- **Gated real e2e (local PDFs, skip in CI):** Hindi image sample → Devanagari extracted;
+  text-layer sample → text layer used, OCR **not** invoked.
 
 ## 7. ADR
 Recorded as **[ADR-0002](../../adr/0002-lightweight-pymupdf-ocr.md)**.
