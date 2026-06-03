@@ -10,6 +10,7 @@ Run: pytest tests/test_pymupdf_ocr.py -v
 """
 from __future__ import annotations
 
+import importlib.util
 import io
 import os
 from pathlib import Path
@@ -18,6 +19,15 @@ import pytest
 
 from docnest.parsers.pymupdf_pdf import PyMuPDFParser
 from docnest.providers.ocr import IOCRProvider
+
+
+def _has(mod: str) -> bool:
+    return bool(importlib.util.find_spec(mod))
+
+# CI installs only ".[dev]" — easyocr/Pillow may be absent. Gate accordingly so the
+# suite is environment-independent (no hard dependency on optional OCR packages).
+requires_easyocr = pytest.mark.skipif(not _has("easyocr"), reason="easyocr not installed")
+requires_pillow = pytest.mark.skipif(not _has("PIL"), reason="Pillow not installed")
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
@@ -48,15 +58,14 @@ def _text_pdf(tmp: Path) -> str:
 
 
 def _image_only_pdf(tmp: Path) -> str:
-    """A PDF whose only content is a raster image (no text layer)."""
+    """A PDF page with a drawing but NO text layer (fitz only — no Pillow needed).
+
+    `get_text` returns empty for this page, so it triggers the OCR fallback.
+    """
     import fitz
-    from PIL import Image, ImageDraw
-    img = Image.new("RGB", (400, 200), "white")
-    ImageDraw.Draw(img).text((10, 90), "pixels not text", fill="black")
-    buf = io.BytesIO(); img.save(buf, "PNG")
     doc = fitz.open()
     page = doc.new_page(width=400, height=200)
-    page.insert_image(fitz.Rect(0, 0, 400, 200), stream=buf.getvalue())
+    page.draw_rect(fitz.Rect(20, 20, 380, 180), fill=(0, 0, 0))  # vector, no text
     p = str(tmp / "image.pdf"); doc.save(p); doc.close()
     return p
 
@@ -88,6 +97,7 @@ class TestSkipTextPages:
 # ── Unit: provider resolution + downscale ────────────────────────────────────
 
 class TestProviderResolution:
+    @requires_easyocr
     def test_default_engine_is_easyocr_with_languages(self):
         from docnest.providers.ocr import EasyOCRProvider
         p = PyMuPDFParser(ocr=True, ocr_languages=["hi", "en"])
@@ -101,6 +111,7 @@ class TestProviderResolution:
         p = PyMuPDFParser(ocr=True)
         assert isinstance(p._ocr_provider, ocrmod.NullOCRProvider)
 
+    @requires_pillow
     def test_downscale_caps_long_edge(self):
         from docnest.parsers.pymupdf_pdf import _downscale_png
         from PIL import Image
@@ -114,12 +125,8 @@ class TestProviderResolution:
 
 _PDF_DIR = os.environ.get("DOCNEST_OCR_PDF_DIR")
 
-def _easyocr_ok() -> bool:
-    import importlib.util
-    return bool(importlib.util.find_spec("easyocr"))
-
 requires_real = pytest.mark.skipif(
-    not (_PDF_DIR and _easyocr_ok()),
+    not (_PDF_DIR and _has("easyocr")),
     reason="set DOCNEST_OCR_PDF_DIR to a folder with the test PDFs + install easyocr",
 )
 
