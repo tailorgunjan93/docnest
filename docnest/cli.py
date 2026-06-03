@@ -55,6 +55,10 @@ def convert(
         help="Skip LLM enrichment (faster, no Ollama required)",
     ),
     include_originals: bool = typer.Option(False, "--include-originals", help="Embed source file in .udf"),
+    include_source_path: bool = typer.Option(
+        False, "--include-source-path",
+        help="Store the full original file path in the .udf (default: basename only, privacy-safe)",
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show stage-by-stage progress"),
     # Human-facing metadata
     owner: str = typer.Option("", "--owner", help="Person or team that owns this document"),
@@ -128,7 +132,10 @@ def convert(
                 on_stage_complete=on_stage_progress,
                 skip_intelligence=skip_intelligence,
             )
-            out = pipeline.convert(source, output=output, include_originals=include_originals, meta=meta)
+            out = pipeline.convert(
+                source, output=output, include_originals=include_originals, meta=meta,
+                include_source_path=include_source_path,
+            )
             progress.update(task, description="Done!", completed=100, total=100)
         except DOCNESTError as exc:
             err_console.print(f"\n[red]Error:[/red] {exc}")

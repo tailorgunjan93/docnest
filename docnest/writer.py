@@ -34,6 +34,27 @@ UDF_VERSION = "1.0"
 _JSON_SEP = (',', ':')
 
 
+def _sanitise_source(source: str, keep_full: bool = False) -> str:
+    """Return a privacy-safe, portable ``source`` label for storage in the .udf.
+
+    A ``.udf`` is a shareable artifact, so by default we store only the file
+    **basename** (e.g. ``report.md``) — never the author's absolute filesystem path,
+    which would leak username / directory layout / OS.
+
+    Rules:
+      - ``keep_full=True`` (or empty input) → return ``source`` unchanged (opt-in).
+      - URL sources (contain ``"://"``, e.g. connector ``html_url``) are already
+        portable → returned verbatim.
+      - otherwise → the last path segment, splitting on both ``/`` and ``\\`` so the
+        result is correct regardless of the host OS.
+    """
+    if keep_full or not source:
+        return source
+    if "://" in source:          # URL (e.g. connector source) — already portable
+        return source
+    return source.replace("\\", "/").rstrip("/").rsplit("/", 1)[-1] or source
+
+
 class UDFWriter:
     """Builds a .udf archive from a normalised, enriched Document.
 
@@ -67,6 +88,7 @@ class UDFWriter:
         doc: Document,
         output_path: str,
         include_originals: bool = False,
+        include_source_path: bool = False,
     ) -> str:
         """Write a single Document to a .udf file.
 
@@ -80,6 +102,9 @@ class UDFWriter:
             doc: Fully normalised Document (pipeline stages 1-5 complete).
             output_path: Destination .udf file path.
             include_originals: If True, embed source file in original/ folder.
+            include_source_path: If True, store the full original path in
+                catalogue.json. Default False stores only the basename so a shared
+                .udf does not leak the author's absolute filesystem path.
 
         Returns:
             Absolute path to the created .udf file.
@@ -106,7 +131,7 @@ class UDFWriter:
 
             # Step 3: Build JSON payloads (compact — no indent whitespace)
             manifest  = self._build_manifest(doc)
-            catalogue = self._build_catalogue(doc)
+            catalogue = self._build_catalogue(doc, include_source_path)
             content   = self._build_content(doc)
 
             # Step 4: Build binary embedding blob (embeddings.bin)
@@ -187,7 +212,7 @@ class UDFWriter:
             "producer": "docnest-ai 1.0",
         }
 
-    def _build_catalogue(self, doc: Document) -> dict[str, Any]:
+    def _build_catalogue(self, doc: Document, include_source_path: bool = False) -> dict[str, Any]:
         """Build catalogue.json — section index loaded into RAM on file open."""
         section_index = []
         for s in doc.sections:
@@ -208,7 +233,7 @@ class UDFWriter:
         return {
             "doc_id": doc.doc_id,
             "title": doc.title,
-            "source": doc.source,
+            "source": _sanitise_source(doc.source, include_source_path),
             "language": "en",
             "summary": doc.summary or "",
             "insights": doc.insights,
