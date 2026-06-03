@@ -143,6 +143,43 @@ class TestDoclingPDFParserUnit:
         parser = DoclingPDFParser()
         assert parser._converter is None
 
+    def test_ocr_engine_and_lang_params(self):
+        parser = DoclingPDFParser(
+            ocr=True, ocr_engine="easyocr", ocr_lang=["hi", "en"],
+            force_full_page_ocr=True,
+        )
+        assert parser._ocr_engine == "easyocr"
+        assert parser._ocr_lang == ["hi", "en"]
+        assert parser._force_full_page_ocr is True
+
+    def test_sections_from_texts_groups_by_heading(self):
+        """Fallback for full-page-image pages: Docling keeps OCR text in
+        doc.texts while the body tree holds only the picture. _sections_from_texts
+        rebuilds sections from doc.texts so that text isn't lost."""
+        class _Item:
+            def __init__(self, label, text):
+                self.label, self.text = label, text
+
+        class _Doc:
+            texts = [
+                _Item("section_header", "निमंत्रण पत्र"),
+                _Item("text", "श्री गणेशाय नमः"),
+                _Item("section_header", "कार्यक्रम"),
+                _Item("text", "२२ मार्च २०२६"),
+                _Item("page_footer", "ignore me"),
+            ]
+
+        sections = DoclingPDFParser()._sections_from_texts(_Doc())
+        assert [s.title for s in sections] == ["निमंत्रण पत्र", "कार्यक्रम"]
+        assert "श्री गणेशाय नमः" in sections[0].text
+        assert "२२ मार्च २०२६" in sections[1].text
+        assert all("ignore me" not in s.text for s in sections)
+
+    def test_sections_from_texts_empty_doc(self):
+        class _Doc:
+            texts = []
+        assert DoclingPDFParser()._sections_from_texts(_Doc()) == []
+
 
 # ------------------------------------------------------------------ #
 #  DoclingPDFParser — integration (require tests/fixtures/sample.pdf) #
