@@ -377,7 +377,7 @@ DOCNEST gives you two PDF parsers. Choose based on your document type and availa
 | | `DoclingPDFParser` | `PyMuPDFParser` |
 |---|---|---|
 | **Table quality** | ✅ ML-grade (TableFormer) | ⚠️ Heuristic (basic grids) |
-| **Scanned PDFs** | ✅ OCR support | ❌ Text-only |
+| **Scanned PDFs** | ✅ OCR support (heavy ML) | ✅ Lightweight OCR (opt-in) |
 | **Heading detection** | ✅ Semantic (Docling layout) | ⚠️ Font-size heuristic |
 | **RAM usage** | ~1–2 GB (ML models) | ~50 MB |
 | **First-run download** | ~1 GB models | None |
@@ -414,6 +414,33 @@ If you hit `std::bad_alloc` or `OSError: paging file too small`, fall back to Py
 ```python
 from docnest.parsers.pymupdf_pdf import PyMuPDFParser
 raw = PyMuPDFParser().parse("huge.pdf")  # Zero ML, always succeeds
+```
+
+### OCR for scanned / image PDFs (Hindi + English, fast path)
+
+`PyMuPDFParser` has an **optional lightweight OCR** path — it OCRs only image-only pages
+(pages with a text layer are used as-is, so it's fast) and runs **without Docling/torch**.
+
+```bash
+pip install docnest-ai[ocr-easyocr]   # EasyOCR (Hindi, English, 80+ scripts)
+#   or: pip install docnest-ai[ocr-tesseract]   # lighter, needs the Tesseract binary
+```
+
+```python
+from docnest.parsers.pymupdf_pdf import PyMuPDFParser
+
+# Scanned invitation in Hindi + English — text pages are skipped (no wasted OCR)
+raw = PyMuPDFParser(ocr=True, ocr_languages=["hi", "en"]).parse("scanned.pdf")
+
+# Tune speed vs accuracy
+raw = PyMuPDFParser(ocr=True, ocr_dpi=150, ocr_max_px=1600).parse("scanned.pdf")
+```
+
+For maximum table/layout quality on scans (needs RAM/CPU/internet), use Docling's OCR:
+
+```python
+from docnest.parsers.pdf import DoclingPDFParser
+raw = DoclingPDFParser(ocr=True, ocr_engine="easyocr", ocr_lang=["hi", "en"]).parse("scanned.pdf")
 ```
 
 ---

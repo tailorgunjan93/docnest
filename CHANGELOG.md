@@ -9,6 +9,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **OCR for scanned / image PDFs (Hindi + English).**
+  - `PyMuPDFParser` gains an optional **lightweight OCR** path (`ocr=True`,
+    `ocr_languages`, `ocr_dpi`, `ocr_max_px`, `text_layer_min_chars`) via the
+    `IOCRProvider` wrapper (EasyOCR default; graceful no-op fallback). It **skips OCR on
+    pages that already have a text layer** (fast) and runs **without Docling/torch**.
+    Verified on a real 1-page Hindi image PDF (500+ Devanagari chars extracted).
+  - `DoclingPDFParser` gains OCR engine selection (`ocr_engine`, `ocr_lang`,
+    `tesseract_cmd`, `tessdata_path`, `force_full_page_ocr`) + `_sections_from_texts`
+    full-page-image text recovery — the opt-in **heavy/high-quality** option.
+  - OCR is **off by default**; install `docnest-ai[ocr-easyocr]` or `[ocr-tesseract]`.
+
 ### Changed
 - **Privacy (input custody):** `.udf` files now store only the source **basename** in
   `catalogue.json` by default (e.g. `report.md`) instead of the author's absolute
