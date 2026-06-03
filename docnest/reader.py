@@ -43,6 +43,8 @@ _INSIGHT_KEYWORDS = {"insight", "finding", "key finding", "takeaway", "conclusio
 _TABLE_CHAR_BUDGET = 1500     # max chars rendered per table in an LLM prompt
 _SECTION_PROSE_CHARS = 2000   # Layer-2 prose cap — the table is appended separately so
                               # it is never chopped by this cap.
+_MULTI_PROSE_CHARS = 600      # Layer-3 per-section prose cap (several sections combined)
+_MULTI_TABLE_BUDGET = 800     # Layer-3 per-section table budget (smaller — multi-section)
 
 
 def _render_table(table: dict, budget: int = _TABLE_CHAR_BUDGET) -> str:
@@ -578,10 +580,22 @@ class UDFIndex:
         model: str = "",
         api_key: str | None = None,
     ) -> tuple[str, int]:
-        """Layer 3: multi-section synthesis."""
-        context = "\n\n".join(
-            f"[{sid}]\n{text[:600]}" for sid, text in sections.items()
-        )
+        """Layer 3: multi-section synthesis.
+
+        Per section: prose capped at ``_MULTI_PROSE_CHARS`` plus a smaller budget-rendered
+        table (``_MULTI_TABLE_BUDGET``), so table rows survive in multi-section answers
+        while the combined prompt stays bounded across several sections.
+        """
+        parts = []
+        for sid, text in sections.items():
+            prose, tables = self._section_parts(sid, _MULTI_TABLE_BUDGET)
+            if not prose and not tables:
+                prose = text or ""                 # fallback to caller-supplied text
+            chunk = f"[{sid}]\n{prose[:_MULTI_PROSE_CHARS]}"
+            if tables:
+                chunk += f"\n{tables}"
+            parts.append(chunk)
+        context = "\n\n".join(parts)
         prompt = (
             f"Synthesise an answer from the sections below.\n\n"
             f"{context}\n\n"
@@ -616,17 +630,23 @@ class UDFIndex:
                 return entry
         return None
 
-    def _section_parts(self, section_id: str) -> tuple[str, str]:
+    def _section_parts(
+        self, section_id: str, table_budget: int = _TABLE_CHAR_BUDGET
+    ) -> tuple[str, str]:
         """Return (prose, rendered_tables) for a section.
 
         Tables are budget-rendered (see ``_render_table``) — no hard row cap. Keeping
         prose and tables separate lets callers cap prose without chopping the table.
+        ``table_budget`` lets callers use a smaller per-table budget (e.g. Layer 3,
+        which combines several sections).
         """
         section = self.get_section(section_id)
         if not section:
             return "", ""
         prose = section.get("text", "")
-        tables = "\n\n".join(_render_table(t) for t in section.get("tables", []))
+        tables = "\n\n".join(
+            _render_table(t, table_budget) for t in section.get("tables", [])
+        )
         return prose, tables
 
     def _get_section_text(self, section_id: str) -> str | None:

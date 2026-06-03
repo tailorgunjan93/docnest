@@ -95,3 +95,14 @@ class TestLayer2TableSurvivesProseCap:
         idx._call_llm_section("what is the value?", "§1",
                               idx._get_section_text("§1"), rec)
         assert "UNIQUE_LATE_ROW" in rec.prompt   # table not chopped by the prose cap
+
+
+class TestLayer3TableSurvivesCap:
+    def test_multi_section_includes_table_rows(self):
+        long_prose = "y " * 1000          # >600 chars of prose
+        rows = [["LATE_MULTI_ROW", "777"]]
+        idx = _index_with(long_prose, rows)
+        rec = RecordingLLM()
+        idx._call_llm_multi("what is the value?",
+                            {"§1": idx._get_section_text("§1")}, rec)
+        assert "LATE_MULTI_ROW" in rec.prompt   # table survives the Layer-3 per-section cap
