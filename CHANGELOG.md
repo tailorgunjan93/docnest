@@ -10,6 +10,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **PyMuPDF native table extraction.** The fast/default PDF path (`PyMuPDFParser`) now
+  populates `section.tables` via `page.find_tables()` (default-on; `extract_tables=False`
+  to disable). Tables are placed in reading order (attached to the heading above them) and
+  their cell text is removed from prose to avoid duplication; degenerate (<2×2) candidates
+  are rejected; fail-soft on any PyMuPDF error. See ADR-0006. Previously text-PDF tables
+  were lost on the fast path.
 - **Deterministic table aggregation (`docnest.aggregation`).** New, dependency-free,
   fail-closed module: `parse_number` (messy cells → float: `$4,050`, `12 550`, `99.97%`,
   `1.24 billion`, `5.8x`) and `TableQuery` (fuzzy column resolution, relational row filter,
@@ -38,6 +44,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `.udf` files load unchanged.
 
 ### Fixed
+- **HTML tables now honour `rowspan` / `colspan`.** `HTMLParser` previously read `<tr>`
+  cells linearly, misaligning spanned tables. Cells are now expanded into a dense
+  rectangular grid (a spanning value is repeated across the cells it covers), so columns
+  line up. Span-free tables are unchanged.
+- **DOCX merged cells aligned (and duplicate values preserved).** `DocxParser` deduplicated
+  consecutive identical cell values as a "merged cell" heuristic, which both misaligned
+  `gridSpan` columns and wrongly collapsed legitimate repeated values. It now keeps
+  python-docx's already-expanded grid verbatim (merged values repeated across the grid).
 - **Table rows no longer truncated at query time.** The reader fed the LLM only the first
   **5 rows** of any table (`reader._get_section_text` → `rows[:5]`), causing wrong
   max/sum/lookup answers on multi-row tables. Tables are now rendered within a **character
