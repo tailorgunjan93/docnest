@@ -10,6 +10,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Large-PDF foundations (passage chunking + bounded-batch embedding).**
+  `docnest.chunking.chunk_text` splits oversized section prose into bounded, boundary-aware
+  passages (ADR-0007) — the basis for making content deep inside huge sections (e.g. a
+  100k-char appendix) retrievable instead of lost to a single truncated embedding.
+  `docnest.embedder.embed_in_batches` + `UDFWriter(embed_batch_size=…)` embed in fixed-size
+  batches so peak memory does not scale with document size. Both are additive building
+  blocks; wiring into the retrieval path is a subsequent change.
 - **PyMuPDF native table extraction.** The fast/default PDF path (`PyMuPDFParser`) now
   populates `section.tables` via `page.find_tables()` (default-on; `extract_tables=False`
   to disable). Tables are placed in reading order (attached to the heading above them) and
