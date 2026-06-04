@@ -216,6 +216,14 @@ After 1+4+7, re-write `intelligence.py` so the LLM enrichment becomes *optional
 augmentation* on top of a deterministic baseline — DocNest produces a full
 intelligence layer **with or without** a model.
 
+**Status (2026-06-04):**
+- ✅ #2 (table aggregation) — built, 36 tests, `docnest/aggregation.py` (branch `task/table-aggregation`).
+- ✅ #3 (empty-answer guard) — wired into eval + smoke-tested; fail-closed, 0 regressions.
+- ⏭️ **#8 (sentence-level / multi-aspect retrieval) is QUEUED NEXT** as
+  `docs/tasks/query-decomposition/` — promoted in priority because the live audit (Part 8)
+  showed the one genuine retrieval miss (BIS Q4) is a first-stage recall/semantic-gap case
+  that query decomposition addresses and ranker-tuning cannot.
+
 Each item follows the protocol: BA/Dev/QA docs + roadmap, ADR for the new wrapper,
 test-first, full regression suite, temp branch → green → merge → CHANGELOG.
 
@@ -271,6 +279,62 @@ normalization, intent) and most of the gap closes **without touching the LLM**.
 > measure DocNest, not formatting. And **revert the eval cap to 1024** (2048
 > exhausts the daily quota and can't finish 88 Q); pursue empty-answer reduction
 > via the extractive fallback (§5.6) inside DocNest instead.
+
+---
+
+## Part 8 — Live validation: guards wired + retrieval-correctness audit (2026-06-04)
+
+After building the deterministic engines, we wired two **fail-closed** guards into the
+eval answer path (aggregation assist + empty-answer query-focused extraction) and ran a
+**local `llama3.2:1b`** model (no quota) over the 30 PDF questions to stress-test them.
+
+### Eval-instrument fixes that landed first
+- **Judge normalization** (commit `9379166`): comma/space thousands, strip section
+  locators, credit formula *result* over addends. Full 88-Q clean run (Cerebras gpt-oss,
+  fixed judge): **8.1 → 8.5**, pass **84% → 89%**; 13 questions recovered, **0 regressions**.
+  Structured formats were almost entirely judge artifacts (XLSX 8.0→9.6, DOCX 8.3→9.4).
+- **Reverted answer cap 2048→1024** — 2048 exhausts the daily quota.
+
+### What the guards actually did (honest)
+- **`llama3.2:1b`, 30 PDF questions: 7.5/10, 77% pass** — a 1B model in the range the
+  *120B* model hit (7.0). Retrieval + judge-fix carry it.
+- **Empty-answer guard fired 0/30.** An *instruct* model emits non-empty (sometimes wrong)
+  answers; the Cerebras empties were a **reasoning-model + 1024-cap** artifact this model
+  doesn't reproduce. The guard is **correct insurance that this model never triggers**
+  (validated in isolation by the smoke test, not in this run). Aggregation assist: 0 fires
+  (no aggregation-intent questions in the PDFs).
+
+### Retrieval-correctness audit (the "feed the LLM the right context" question)
+Per-question check of whether the retrieved section actually contains the answer:
+- **~29/30 fed answer-bearing context.** The eval feeds **top-8** sections; a crude
+  keyword heuristic first suggested "12 mis-ranked top-1 / 3 misses," but inspecting the
+  actual content corrected it:
+  - **CAI Q1 → §23 "The Constitutional AI Approach"** and **CAI Q4 → §34.4 "Critiques,
+    Revisions…"** were **correct retrievals**; the low scores were the 1B model fumbling
+    correct context (acceptable — model, not DocNest).
+  - The remaining low scores (Llama 2 Q5 Ghost Attention, Attention Q3) had **correct
+    context fed** (support 0.68–0.88) → again the model, not retrieval.
+- **One genuine miss: BIS Q4** (AI-driven herding / concentration risk). Retrieved §43
+  (Commercial Real Estate); the answer lives in the **AI chapter (§111–135)**. The
+  retriever ranked the AI section **below the top-30 pool** → a **first-stage recall /
+  vocabulary-gap miss**, *not* a ranking problem. The query's finance framing
+  ("financial stability, asset price volatility") dominates; the answer's "AI" framing
+  never surfaces. The answer is also **spread across the AI chapter**, not in one section.
+
+### Decision: do NOT tune the ranker
+Ranking only re-orders candidates that *reach* the reranker; §117 never does. Tuning
+weights for **1/30** would risk regressing the **18 clean top-1 retrievals**. The
+principled fix is **multi-aspect query decomposition (§5.5)** — split a multi-faceted
+question into aspects and retrieve per aspect, so "herding / concentration" gets its own
+sub-query that can surface the AI chapter. A stronger embedder (vs 384-d MiniLM) is the
+secondary lever. Both are scoped, gated tasks — **§5.5 is queued as the next one**
+(docs/tasks/query-decomposition/). BIS Q4 is logged as a known multi-aspect-recall limit.
+
+### Net
+DocNest's job — **feed the LLM the correct context** — is being done ~29/30 on hard PDFs.
+The residual losses are (a) a weak answer model fumbling correct context, and (b) one
+multi-aspect recall miss. Neither is fixed by the LLM; both map to library work already
+on the roadmap.
 
 ---
 
