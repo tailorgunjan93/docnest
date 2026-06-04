@@ -2500,9 +2500,18 @@ def _local_judge(question: str, candidate: str, reference: str) -> tuple[int, st
         return 0, "retrieval-miss: 'not found in context'"
 
     # ── 1. Number match (±6% tolerance for approximates) ────────────────────
+    def _denorm(text: str) -> str:
+        # Strip comma thousands-separators AND space thousands-separators
+        # ("210 000" / "12 550" → "210000" / "12550"). Models emit both styles;
+        # without this, a CORRECT answer like "12,550"/"210 000" fails to match
+        # the ground truth "12550"/"210000".
+        text = text.replace(',', '')
+        text = re.sub(r'(?<=\d)\s+(?=\d{3}\b)', '', text)
+        return text
+
     def _nums(text: str) -> list[str]:
         # No trailing \b — allows matching "23400" in "23400k" and "31.7" in "31.7%"
-        return re.findall(r'\b\d[\d\.]*', text.replace(',', ''))
+        return re.findall(r'\b\d[\d\.]*', _denorm(text))
 
     def _close(a: str, b: str) -> bool:
         try:
@@ -2511,10 +2520,27 @@ def _local_judge(question: str, candidate: str, reference: str) -> tuple[int, st
         except Exception:
             return a == b
 
-    ref_nums  = _nums(ref)
+    # Strip section/sheet *locators* from the reference before extracting numbers
+    # so document metadata ("Section 8", "§2.1", "section 6.1") is not mistaken
+    # for an answer number the candidate must repeat.
+    ref_for_nums = re.sub(r'§\s*[\d\.]+|\bsection\s+[\d\.]+', ' ', ref)
+
+    ref_nums  = _nums(ref_for_nums)
     cand_nums = _nums(cand)
     num_hits  = sum(1 for rn in ref_nums if any(_close(rn, cn) for cn in cand_nums))
-    num_ratio = num_hits / max(len(ref_nums), 1)
+    recall    = num_hits / max(len(ref_nums), 1)
+
+    # Result-over-formula credit: when the ground truth states a computation
+    # ("4200 + 3100 + ... = 12550"), the RESULT after '=' is the answer that
+    # matters — not the intermediate addends. A concise correct answer that gives
+    # only the result should not be penalised for omitting the addends.
+    result_match = 0.0
+    m_res = re.search(r'=\s*([\d][\d, ]*\d|\d)', ref)
+    if m_res:
+        res = _denorm(m_res.group(1))
+        if any(_close(res, cn) for cn in cand_nums):
+            result_match = 1.0
+    num_ratio = max(recall, result_match)
 
     # ── 2. Keyword overlap ───────────────────────────────────────────────────
     ref_kws   = {w for w in re.sub(r'[^a-z0-9]', ' ', ref).split()
