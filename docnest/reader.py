@@ -37,6 +37,40 @@ _L2_SCORE_THRESHOLD = 0.15   # above this → Layer 2 (single section LLM)
 _SUMMARY_KEYWORDS = {"summarise", "summarize", "summary", "what is this", "overview", "about"}
 _INSIGHT_KEYWORDS = {"insight", "finding", "key finding", "takeaway", "conclusion"}
 
+# Table rendering budget for the LLM context (production query path).
+# Replaces a former hard 5-row cap so aggregation/lookup questions see all the data
+# (bounded by the budget). Rows beyond the budget are summarised as "… (+N more rows)".
+_TABLE_CHAR_BUDGET = 1500     # max chars rendered per table in an LLM prompt
+_SECTION_PROSE_CHARS = 2000   # Layer-2 prose cap — the table is appended separately so
+                              # it is never chopped by this cap.
+_MULTI_PROSE_CHARS = 600      # Layer-3 per-section prose cap (several sections combined)
+_MULTI_TABLE_BUDGET = 800     # Layer-3 per-section table budget (smaller — multi-section)
+
+
+def _render_table(table: dict, budget: int = _TABLE_CHAR_BUDGET) -> str:
+    """Render a table as text up to ``budget`` characters.
+
+    Always shows the header and at least one row; appends ``"… (+N more rows)"`` when
+    rows are omitted so the LLM (and the user) know the table was truncated.
+    """
+    headers = " | ".join(table.get("headers", []))
+    lines = [headers]
+    used = len(headers)
+    shown = 0
+    rows = table.get("rows", [])
+    for row in rows:
+        line = " | ".join(row)
+        if used + len(line) + 1 > budget and shown >= 1:
+            break
+        lines.append(line)
+        used += len(line) + 1
+        shown += 1
+    body = "\n".join(lines)
+    omitted = len(rows) - shown
+    if omitted > 0:
+        body += f"\n… (+{omitted} more rows)"
+    return f"Table {table.get('table_id', '')}:\n{body}"
+
 
 @dataclass
 class QueryResult:
@@ -517,11 +551,22 @@ class UDFIndex:
         model: str = "",
         api_key: str | None = None,
     ) -> tuple[str, int]:
-        """Layer 2: single section answer."""
+        """Layer 2: single section answer.
+
+        Prose is capped at ``_SECTION_PROSE_CHARS``; the budget-rendered table is appended
+        afterwards so table rows are never chopped by the prose cap (a common cause of
+        wrong table-aggregation answers).
+        """
+        prose, tables = self._section_parts(section_id)
+        body = prose[:_SECTION_PROSE_CHARS]
+        if tables:
+            body += f"\n\n{tables}"
+        if not body.strip():
+            body = section_text[:_SECTION_PROSE_CHARS]   # fallback to caller-supplied text
         prompt = (
             f"Answer the question using ONLY the section below. "
             f"If the answer is not in the section, say 'Not found in {section_id}'.\n\n"
-            f"Section {section_id}:\n{section_text[:2000]}\n\n"
+            f"Section {section_id}:\n{body}\n\n"
             f"Question: {question}"
         )
         answer = _llm_call(prompt, provider, model, api_key)
@@ -535,10 +580,22 @@ class UDFIndex:
         model: str = "",
         api_key: str | None = None,
     ) -> tuple[str, int]:
-        """Layer 3: multi-section synthesis."""
-        context = "\n\n".join(
-            f"[{sid}]\n{text[:600]}" for sid, text in sections.items()
-        )
+        """Layer 3: multi-section synthesis.
+
+        Per section: prose capped at ``_MULTI_PROSE_CHARS`` plus a smaller budget-rendered
+        table (``_MULTI_TABLE_BUDGET``), so table rows survive in multi-section answers
+        while the combined prompt stays bounded across several sections.
+        """
+        parts = []
+        for sid, text in sections.items():
+            prose, tables = self._section_parts(sid, _MULTI_TABLE_BUDGET)
+            if not prose and not tables:
+                prose = text or ""                 # fallback to caller-supplied text
+            chunk = f"[{sid}]\n{prose[:_MULTI_PROSE_CHARS]}"
+            if tables:
+                chunk += f"\n{tables}"
+            parts.append(chunk)
+        context = "\n\n".join(parts)
         prompt = (
             f"Synthesise an answer from the sections below.\n\n"
             f"{context}\n\n"
@@ -573,15 +630,28 @@ class UDFIndex:
                 return entry
         return None
 
-    def _get_section_text(self, section_id: str) -> str | None:
+    def _section_parts(
+        self, section_id: str, table_budget: int = _TABLE_CHAR_BUDGET
+    ) -> tuple[str, str]:
+        """Return (prose, rendered_tables) for a section.
+
+        Tables are budget-rendered (see ``_render_table``) — no hard row cap. Keeping
+        prose and tables separate lets callers cap prose without chopping the table.
+        ``table_budget`` lets callers use a smaller per-table budget (e.g. Layer 3,
+        which combines several sections).
+        """
         section = self.get_section(section_id)
         if not section:
-            return None
-        text = section.get("text", "")
-        for table in section.get("tables", []):
-            headers = " | ".join(table.get("headers", []))
-            rows = "\n".join(" | ".join(row) for row in table.get("rows", [])[:5])
-            text += f"\n\nTable {table.get('table_id', '')}:\n{headers}\n{rows}"
+            return "", ""
+        prose = section.get("text", "")
+        tables = "\n\n".join(
+            _render_table(t, table_budget) for t in section.get("tables", [])
+        )
+        return prose, tables
+
+    def _get_section_text(self, section_id: str) -> str | None:
+        prose, tables = self._section_parts(section_id)
+        text = prose + (f"\n\n{tables}" if tables else "")
         return text.strip() or None
 
     def _build_full_text(self) -> str:

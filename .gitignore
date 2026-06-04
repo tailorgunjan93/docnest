@@ -13,6 +13,10 @@ venv/
 
 # Testing
 .pytest_cache/
+
+# Generated test fixture — kept local so CI doesn't pull Docling's ~1GB models.
+# Recreate with: python tests/fixtures/_make_sample_pdf.py
+tests/fixtures/sample_text.pdf
 .coverage
 coverage.xml
 htmlcov/
