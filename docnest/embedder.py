@@ -36,6 +36,27 @@ class IEmbedder(ABC):
         ...
 
 
+def embed_in_batches(
+    embedder: "IEmbedder", texts: list[str], batch_size: int = 64
+) -> np.ndarray:
+    """Embed ``texts`` in fixed-size batches so peak memory does not scale with len(texts).
+
+    Order-preserving; returns a ``(len(texts), dims)`` float32 array. ``batch_size <= 0``
+    falls back to a single ``embed`` call. Bounds the per-call memory of any ``IEmbedder``
+    — important once large sections are split into many passages.
+    """
+    if not texts:
+        dims = getattr(embedder, "dims", 0) or 0
+        return np.empty((0, dims), dtype=np.float32)
+    if batch_size <= 0:
+        return np.asarray(embedder.embed(texts), dtype=np.float32)
+    parts: list[np.ndarray] = []
+    for i in range(0, len(texts), batch_size):
+        vecs = embedder.embed(texts[i:i + batch_size])
+        parts.append(np.asarray(vecs, dtype=np.float32))
+    return np.vstack(parts)
+
+
 class NomicEmbedder(IEmbedder):
     """Local embeddings using nomic-embed-text-v1.5 via fastembed.
 

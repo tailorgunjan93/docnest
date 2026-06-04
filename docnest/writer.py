@@ -74,10 +74,12 @@ class UDFWriter:
         embedder: IEmbedder | None = None,
         quantizer: Quantizer | None = None,
         storage: IStorageBackend | None = None,
+        embed_batch_size: int = 64,
     ) -> None:
         self.embedder  = embedder
         self.quantizer = quantizer if quantizer is not None else Quantizer("float16")
         self.storage   = storage or ZipStorageBackend()
+        self.embed_batch_size = embed_batch_size
 
     # ------------------------------------------------------------------ #
     #  Public API                                                          #
@@ -121,7 +123,11 @@ class UDFWriter:
                 (s.summary or s.title + " " + s.text[:300]).strip()
                 for s in doc.sections
             ]
-            vectors = self.embedder.embed(texts) if (texts and self.embedder) else []
+            if texts and self.embedder:
+                from docnest.embedder import embed_in_batches
+                vectors = embed_in_batches(self.embedder, texts, self.embed_batch_size)
+            else:
+                vectors = []
 
             # Step 2: Quantize embeddings and attach to sections
             import numpy as np
