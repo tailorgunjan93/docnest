@@ -21,3 +21,4 @@ significant decision is not "done" until its ADR exists here.
 - [0001 — Sanitise `source` at the write boundary (privacy-by-default)](0001-sanitise-source-at-write-boundary.md) — Accepted
 - [0002 — Lightweight OCR in PyMuPDFParser (skip text pages); Docling OCR as heavy option](0002-lightweight-pymupdf-ocr.md) — Accepted
 - [0003 — Budgeted table rendering in the query path (drop the 5-row cap)](0003-budgeted-table-rendering.md) — Accepted
+- [0004 — Deterministic table aggregation in the library (not the LLM)](0004-deterministic-table-aggregation.md) — Accepted
