@@ -115,22 +115,21 @@ class HTMLParser(IParser):
         return sections
 
     def _extract_table(self, table_tag: "Tag", index: int) -> TableData | None:  # type: ignore[name-defined]
-        """Convert a <table> element to a TableData object."""
+        """Convert a <table> element to a TableData object.
+
+        Expands ``rowspan`` / ``colspan`` into a rectangular grid so every column
+        lines up (a spanning cell's value is repeated across the cells it covers).
+        """
         rows = table_tag.find_all("tr")
         if not rows:
             return None
 
-        header_cells = rows[0].find_all(["th", "td"])
-        headers = [c.get_text(strip=True) for c in header_cells]
-        if not headers:
+        grid = self._expand_grid(rows)
+        if not grid or not any(grid[0]):
             return None
 
-        data_rows: list[list[str]] = []
-        for row in rows[1:]:
-            cells = row.find_all(["th", "td"])
-            row_data = [c.get_text(strip=True) for c in cells]
-            if row_data:
-                data_rows.append(row_data)
+        headers = grid[0]
+        data_rows = [r for r in grid[1:] if any(c.strip() for c in r)]
 
         caption_tag = table_tag.find("caption")
         caption = caption_tag.get_text(strip=True) if caption_tag else None
@@ -141,3 +140,33 @@ class HTMLParser(IParser):
             headers=headers,
             rows=data_rows,
         )
+
+    @staticmethod
+    def _expand_grid(tr_tags) -> list[list[str]]:
+        """Expand <tr> tags into a dense rectangular grid honouring row/col spans.
+
+        Standard table-grid placement: each cell is written into every (row, col) it
+        covers; cells already occupied by a rowspan from above are skipped.
+        """
+        occupied: dict[tuple, str] = {}
+        max_cols = 0
+        for r, tr in enumerate(tr_tags):
+            c = 0
+            for cell in tr.find_all(["th", "td"]):
+                while (r, c) in occupied:           # skip cells filled by a rowspan above
+                    c += 1
+                val = cell.get_text(strip=True)
+                try:
+                    cs = max(1, int(cell.get("colspan", 1) or 1))
+                    rs = max(1, int(cell.get("rowspan", 1) or 1))
+                except (TypeError, ValueError):
+                    cs = rs = 1
+                for dr in range(rs):
+                    for dc in range(cs):
+                        occupied[(r + dr, c + dc)] = val
+                c += cs
+                max_cols = max(max_cols, c)
+        if not occupied:
+            return []
+        n_rows = max(rr for rr, _ in occupied) + 1
+        return [[occupied.get((r, c), "") for c in range(max_cols)] for r in range(n_rows)]

@@ -214,21 +214,19 @@ class DocxParser(IParser):
         """Convert a python-docx Table to a TableData model.
 
         The first row is treated as the header row.
-        Merged cells: python-docx repeats merged cell text, so we
-        deduplicate consecutive equal values within each row.
+
+        Merged cells: python-docx already returns a full rectangular grid where a
+        merged cell repeats its value across every grid position it covers — gridSpan
+        (horizontal) repeats across columns, vMerge (vertical) repeats down rows. We
+        therefore keep the grid as-is (column alignment preserved, like HTML colspan).
+        We must NOT deduplicate: that both misaligned merged columns and collapsed
+        legitimately-repeated values (e.g. two cells both "10").
         """
         try:
-            rows_raw: list[list[str]] = []
-            for row in table.rows:  # type: ignore[attr-defined]
-                row_cells = [cell.text.strip() for cell in row.cells]
-                # Deduplicate consecutive identical values (merged cell artefact)
-                deduped: list[str] = []
-                prev: object = object()  # unique sentinel
-                for val in row_cells:
-                    if val != prev:
-                        deduped.append(val)
-                        prev = val
-                rows_raw.append(deduped)
+            rows_raw: list[list[str]] = [
+                [cell.text.strip() for cell in row.cells]  # type: ignore[attr-defined]
+                for row in table.rows  # type: ignore[attr-defined]
+            ]
 
             if not rows_raw:
                 return None

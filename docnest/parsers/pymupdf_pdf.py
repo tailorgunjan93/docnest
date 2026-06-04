@@ -45,6 +45,7 @@ class PyMuPDFParser(IParser):
         ocr_dpi: int = 200,
         ocr_max_px: int = 2000,
         text_layer_min_chars: int = 20,
+        extract_tables: bool = True,
     ) -> None:
         """
         Args:
@@ -64,6 +65,7 @@ class PyMuPDFParser(IParser):
                  text layer is treated as a text page (no OCR). Default 20.
         """
         self.heading_threshold = heading_threshold
+        self._extract_tables = extract_tables
         self._ocr = ocr
         self._ocr_dpi = ocr_dpi
         self._ocr_max_px = ocr_max_px
@@ -145,9 +147,21 @@ class PyMuPDFParser(IParser):
     # ------------------------------------------------------------------ #
 
     def _extract_blocks(self, doc: object) -> list[dict]:
-        """Extract all text blocks with font metadata from all pages."""
+        """Extract an ordered stream of text + table items from all pages.
+
+        Text items: ``{"text","size","bold","y0"}``. Table items (when
+        ``extract_tables``): ``{"kind":"table","table":TableData,"y0"}``. Within each
+        page, items are ordered by vertical position (``y0``) so a table attaches to the
+        heading above it; spans falling inside a detected table are dropped (de-dup).
+        """
         blocks: list[dict] = []
-        for page in doc:  # type: ignore[attr-defined]
+        for pi, page in enumerate(doc):  # type: ignore[attr-defined]
+            # 1. Detect tables on this page (bbox + TableData).
+            page_tables: list[tuple[tuple, TableData]] = []
+            if self._extract_tables and hasattr(page, "find_tables"):
+                page_tables = self._extract_page_tables(page, pi)
+
+            page_items: list[dict] = []
             page_dict = page.get_text("dict", flags=0)  # type: ignore[attr-defined]
             for block in page_dict.get("blocks", []):
                 if block.get("type") != 0:  # type 0 = text, skip images
@@ -157,11 +171,22 @@ class PyMuPDFParser(IParser):
                         text = span.get("text", "").strip()
                         if not text:
                             continue
-                        blocks.append({
+                        bbox = span.get("bbox", (0.0, 0.0, 0.0, 0.0))
+                        # De-dup: a table's cell text also appears as spans — drop them.
+                        if any(_bbox_contains(tb, bbox) for tb, _ in page_tables):
+                            continue
+                        page_items.append({
                             "text": text,
                             "size": round(span.get("size", 10), 1),
                             "bold": bool(span.get("flags", 0) & 2**4),  # bold flag
+                            "y0": float(bbox[1]),
                         })
+
+            # 2. Add table items, then order the page by vertical position.
+            for tb, td in page_tables:
+                page_items.append({"kind": "table", "table": td, "y0": float(tb[1])})
+            page_items.sort(key=lambda it: it.get("y0", 0.0))
+            blocks.extend(page_items)
 
             # OCR fallback: only for image-only / near-empty text pages, and only
             # when OCR is enabled. Text pages are never OCR'd (fast).
@@ -171,8 +196,39 @@ class PyMuPDFParser(IParser):
                     ocr_text = self._ocr_page(page)
                     if ocr_text.strip():
                         # Uniform size → treated as body text (a scan has no font info)
-                        blocks.append({"text": ocr_text.strip(), "size": 10.0, "bold": False})
+                        blocks.append({"text": ocr_text.strip(), "size": 10.0,
+                                       "bold": False, "y0": 1e9})
         return blocks
+
+    def _extract_page_tables(self, page: object, page_index: int) -> list[tuple]:
+        """Return ``[(bbox, TableData), ...]`` for tables found on a page.
+
+        Fail-soft: any PyMuPDF error → ``[]`` (never crashes parsing). Degenerate
+        candidates (< 2 rows or < 2 columns) are rejected to avoid false positives.
+        """
+        out: list[tuple] = []
+        try:
+            finder = page.find_tables()  # type: ignore[attr-defined]
+            tabs = getattr(finder, "tables", finder)
+            for i, t in enumerate(tabs):
+                data = t.extract()
+                rows = [[("" if c is None else str(c)).strip() for c in row] for row in data]
+                rows = [r for r in rows if any(c for c in r)]  # drop fully-empty rows
+                if len(rows) < 2 or len(rows[0]) < 2:           # degeneracy guard
+                    continue
+                headers = rows[0]
+                width = len(headers)
+                data_rows = [(r + [""] * width)[:width] for r in rows[1:]]
+                td = TableData(
+                    table_id=f"tbl_{page_index + 1}_{i + 1}",
+                    caption=None,
+                    headers=headers,
+                    rows=data_rows,
+                )
+                out.append((tuple(t.bbox), td))
+        except Exception:
+            return out
+        return out
 
     def _ocr_page(self, page: object) -> str:
         """Render a page to PNG (downscaled) and OCR it via the provider.
@@ -189,8 +245,9 @@ class PyMuPDFParser(IParser):
             return ""
 
     def _median_font_size(self, blocks: list[dict]) -> float:
-        """Compute the median font size across all blocks."""
-        sizes = sorted(b["size"] for b in blocks if b["text"].strip())
+        """Compute the median font size across text blocks (table items ignored)."""
+        sizes = sorted(b["size"] for b in blocks
+                       if "size" in b and b.get("text", "").strip())
         if not sizes:
             return 11.0
         mid = len(sizes) // 2
@@ -198,9 +255,10 @@ class PyMuPDFParser(IParser):
 
     def _extract_title(self, blocks: list[dict], path: Path) -> str:
         """Return the largest text block (likely the document title)."""
-        if not blocks:
+        text_blocks = [b for b in blocks if "size" in b and b.get("text", "").strip()]
+        if not text_blocks:
             return _filename_to_title(path.stem)
-        largest = max(blocks, key=lambda b: b["size"])
+        largest = max(text_blocks, key=lambda b: b["size"])
         return largest["text"].strip() or _filename_to_title(path.stem)
 
     def _build_sections(self, blocks: list[dict]) -> list[Section]:
@@ -213,7 +271,7 @@ class PyMuPDFParser(IParser):
 
         # Collect unique heading font sizes to assign levels
         heading_sizes = sorted(
-            {b["size"] for b in blocks if b["size"] >= heading_min},
+            {b["size"] for b in blocks if "size" in b and b["size"] >= heading_min},
             reverse=True,  # largest = level 1
         )
         size_to_level: dict[float, int] = {
@@ -224,6 +282,13 @@ class PyMuPDFParser(IParser):
         current: Optional[Section] = None
 
         for block in blocks:
+            # Table item: attach to the current section (heading above it).
+            if block.get("kind") == "table":
+                if current is None:
+                    current = Section(id="", title="Introduction", level=1, text="")
+                current.tables.append(block["table"])
+                continue
+
             text = block["text"].strip()
             size = block["size"]
             is_bold = block["bold"]
@@ -256,6 +321,17 @@ class PyMuPDFParser(IParser):
             sections.append(current)
 
         return sections
+
+
+def _bbox_contains(table_bbox: tuple, span_bbox: tuple) -> bool:
+    """True if a span's center lies inside a table's bounding box (for de-dup)."""
+    try:
+        cx = (span_bbox[0] + span_bbox[2]) / 2.0
+        cy = (span_bbox[1] + span_bbox[3]) / 2.0
+        x0, y0, x1, y1 = table_bbox
+        return x0 <= cx <= x1 and y0 <= cy <= y1
+    except Exception:
+        return False
 
 
 def _downscale_png(png_bytes: bytes, max_px: int) -> bytes:
