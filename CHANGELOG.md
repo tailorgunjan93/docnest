@@ -10,6 +10,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Deterministic table aggregation (`docnest.aggregation`).** New, dependency-free,
+  fail-closed module: `parse_number` (messy cells → float: `$4,050`, `12 550`, `99.97%`,
+  `1.24 billion`, `5.8x`) and `TableQuery` (fuzzy column resolution, relational row filter,
+  `sum`/`count`/`min`/`max`/`avg`) over `TableData`. Returns a structured
+  `AggregationResult` and never guesses — unknown column / non-numeric / empty match yields
+  `ok=False` + reason. Net-new and not yet wired into the query path; no `.udf`/API change.
+  See ADR-0004. (36 unit tests.)
 - **OCR for scanned / image PDFs (Hindi + English).**
   - `PyMuPDFParser` gains an optional **lightweight OCR** path (`ocr=True`,
     `ocr_languages`, `ocr_dpi`, `ocr_max_px`, `text_layer_min_chars`) via the
@@ -30,7 +37,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`DocNestPipeline.convert` / `UDFWriter.write`). No `UDF_VERSION` change; existing
   `.udf` files load unchanged.
 
+### Fixed
+- **Table rows no longer truncated at query time.** The reader fed the LLM only the first
+  **5 rows** of any table (`reader._get_section_text` → `rows[:5]`), causing wrong
+  max/sum/lookup answers on multi-row tables. Tables are now rendered within a **character
+  budget** (drop the 5-row cap), and tables survive the prose cap in both single-section
+  (Layer 2) and multi-section (Layer 3) synthesis. If rows are dropped, an explicit
+  `… (+N more rows)` note is appended. See ADR-0003. (Reader query path only; no `.udf`/
+  format change.)
+
 ### Planned
+- **Multi-aspect query decomposition** — split multi-faceted questions into aspect
+  sub-queries + per-aspect retrieval (fixes the one recall miss found in the eval audit).
 - JSON / JSONL parser
 - PPTX parser
 - EPUB parser
