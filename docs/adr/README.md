@@ -23,3 +23,4 @@ significant decision is not "done" until its ADR exists here.
 - [0003 — Budgeted table rendering in the query path (drop the 5-row cap)](0003-budgeted-table-rendering.md) — Accepted
 - [0004 — Deterministic table aggregation in the library (not the LLM)](0004-deterministic-table-aggregation.md) — Accepted
 - [0006 — Native table extraction in PyMuPDFParser (default-on)](0006-pymupdf-native-table-extraction.md) — Accepted
+- [0007 — Passage chunking for large sections (retrievability)](0007-passage-chunking-for-large-sections.md) — Accepted
