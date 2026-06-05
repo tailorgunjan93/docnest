@@ -44,13 +44,19 @@ def _kw(t: str) -> set:
 
 
 def _correct(answer: str, truth: str) -> bool:
+    """Use the SAME tuned judge as rag_accuracy_eval (≥7/10 = correct) for a fair number."""
     if not answer.strip():
         return False
-    a_n, t_n = _nums(answer), _nums(truth)
-    if t_n and (a_n & t_n):
-        return True
-    tk = _kw(truth)
-    return bool(tk) and len(_kw(answer) & tk) / len(tk) >= 0.35
+    try:
+        from rag_accuracy_eval import _local_judge
+        score, _ = _local_judge("", answer, truth)
+        return score >= 7
+    except Exception:
+        a_n, t_n = _nums(answer), _nums(truth)
+        if t_n and (a_n & t_n):
+            return True
+        tk = _kw(truth)
+        return bool(tk) and len(_kw(answer) & tk) / len(tk) >= 0.35
 
 
 def _find_pickle(short: str):
