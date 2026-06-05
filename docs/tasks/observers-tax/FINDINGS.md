@@ -41,8 +41,24 @@ LLM; §5.2 keywords; §5.3 summaries). That would:
 Then re-run this harness to measure the tax drop. The aggregation engine (ADR-0004) is the
 deterministic Layer-0 answerer for "total/sum/count" queries once wired into the reader.
 
+## Follow-up result — deterministic key-number enrichment (ADR-0008)
+After wiring deterministic `key_numbers` extraction into the pipeline (no LLM) and
+re-running the same 10 questions on the enriched `.udf`:
+
+| Metric | Before (empty) | After (deterministic) |
+|---|---|---|
+| Zero-token answers (L0+1) | 0/10 (0%) | **4/10 (40%)** |
+| Accuracy | 90% | **100%** |
+| Layer distribution | L2:1, L4:9 | **L0:4**, L4:6 |
+| DocNest tax | 331 tok/q | **219 tok/q** |
+| Tax reduction vs naive | 31.8% | **54.8%** |
+
+The 0-token path is revived and Layer-0 answers are *exact*. Remaining gap to 70%: prose
+figures get verbose labels that don't match question wording, and there's no Layer-1 summary
+yet. Next: better label binding, deterministic section summaries (Layer 1), and wiring the
+aggregation engine (ADR-0004) for "total/sum" queries.
+
 ## Re-run
 ```
 python eval/observers_tax_eval.py --udf <file.udf> --provider ollama --model llama3.2:1b
 ```
-Use a `.udf` built **with** intelligence enrichment to measure the best-case zero-token rate.
