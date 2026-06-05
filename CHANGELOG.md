@@ -9,6 +9,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Planned
+- **Multi-aspect query decomposition** — split multi-faceted questions into aspect
+  sub-queries + per-aspect retrieval (fixes the one recall miss found in the eval audit).
+- **Synthesis-aware routing** — feed synthesis questions richer multi-section LLM context
+  (investigated; needs a capable model to validate — see docs/tasks/observers-tax/).
+- JSON / JSONL parser
+- PPTX parser
+- EPUB parser
+- 85%+ test coverage + mypy passing
+- Docker image `ghcr.io/tailorgunjan93/docnest:latest`
+
+## [0.7.0] — 2026-06-05
+
 ### Added
 - **Deterministic keywords + extractive Layer 1 — zero-token answers ≥70%.**
   `docnest.keywords` populates section keywords by extraction (no LLM) so the reader's BM25
@@ -80,15 +93,6 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (Layer 2) and multi-section (Layer 3) synthesis. If rows are dropped, an explicit
   `… (+N more rows)` note is appended. See ADR-0003. (Reader query path only; no `.udf`/
   format change.)
-
-### Planned
-- **Multi-aspect query decomposition** — split multi-faceted questions into aspect
-  sub-queries + per-aspect retrieval (fixes the one recall miss found in the eval audit).
-- JSON / JSONL parser
-- PPTX parser
-- EPUB parser
-- 85%+ test coverage + mypy passing
-- Docker image `ghcr.io/tailorgunjan93/docnest:latest`
 
 ---
 
