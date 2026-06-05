@@ -128,3 +128,17 @@ class TestLayer0Revived:
         assert res.layer_used == 0
         assert res.tokens_used == 0
         assert "99.97" in res.answer
+
+    def test_allow_llm_false_answers_at_layer_0(self):
+        from docnest.reader import UDFIndex
+        catalogue = {"section_index": [], "summary": "", "insights": [],
+                     "key_numbers": [{"label": "Uptime", "value": "99.97%",
+                                      "unit": "%", "section": "§1"}]}
+        idx = UDFIndex(catalogue=catalogue, content={"sections": {}},
+                       zip_path="dummy.udf", embedding_dims=0)
+        # deterministic-only: Layer-0 still answers (0 tokens)
+        hit = idx.query("what is the uptime?", allow_llm=False)
+        assert hit.layer_used == 0 and hit.tokens_used == 0 and "99.97" in hit.answer
+        # a non-precomputed query returns no deterministic answer (never calls an LLM)
+        miss = idx.query("explain the geopolitical implications", allow_llm=False)
+        assert miss.layer_used == -1 and miss.tokens_used == 0
