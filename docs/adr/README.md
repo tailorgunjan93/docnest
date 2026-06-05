@@ -24,3 +24,4 @@ significant decision is not "done" until its ADR exists here.
 - [0004 — Deterministic table aggregation in the library (not the LLM)](0004-deterministic-table-aggregation.md) — Accepted
 - [0006 — Native table extraction in PyMuPDFParser (default-on)](0006-pymupdf-native-table-extraction.md) — Accepted
 - [0007 — Passage chunking for large sections (retrievability)](0007-passage-chunking-for-large-sections.md) — Accepted
+- [0008 — Deterministic key-number enrichment (revive the 0-token path)](0008-deterministic-key-number-enrichment.md) — Accepted

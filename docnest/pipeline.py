@@ -200,6 +200,12 @@ class DocNestPipeline:
             doc = self.intelligence.enrich_document(doc)
             self.on_stage_complete("enrich_document", doc)
 
+        # ── Stage 5b: Deterministic intelligence (no LLM) ────────────────
+        # Populate key_numbers by extraction so Layer 0 (0-token) works even when LLM
+        # enrichment is skipped/unavailable. No-op if key_numbers already populated.
+        from docnest.key_numbers import enrich_key_numbers
+        enrich_key_numbers(doc)
+
         # ── Stage 6: Embed + quantize ────────────────────────────────────
         # (Embeddings are attached to sections inside UDFWriter.write())
         self.on_stage_complete("embed", doc)

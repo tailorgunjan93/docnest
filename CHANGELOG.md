@@ -10,6 +10,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Deterministic key-number enrichment (`docnest.key_numbers`).** `key_numbers` (which power
+  the Layer-0, zero-token answer path) are now extracted from text **without an LLM** — regex
+  + nearest-label binding, filtering years/list-markers/identifiers — and populated by the
+  pipeline by default (no-op if an LLM already filled them). Revives 0-token numeric lookups:
+  on the Observer's-Tax eval the zero-token answer rate went **0% → 40%**, accuracy **90% →
+  100%**, and per-query token cost **331 → 219** (54.8% under naive RAG). See ADR-0008.
 - **Large-PDF foundations (passage chunking + bounded-batch embedding).**
   `docnest.chunking.chunk_text` splits oversized section prose into bounded, boundary-aware
   passages (ADR-0007) — the basis for making content deep inside huge sections (e.g. a
