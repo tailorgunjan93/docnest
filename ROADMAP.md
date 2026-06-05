@@ -5,13 +5,18 @@
 
 ---
 
-## Current Status: Alpha
+## Current Status: Stable — v0.7.0 on PyPI (`pip install docnest-ai`)
 
 Core pipeline, five-layer query engine, HTML viewer, library mode, and pluggable vector/search/storage/LLM/embedder/OCR providers are all implemented and working.
 
-Next milestone: PyPI release (`pip install docnest-ai`) with 85%+ test coverage.
+**v0.7.0 — robustness & deterministic intelligence:**
+- Complex tables: native PyMuPDF extraction, HTML rowspan/colspan, DOCX merged cells, budgeted query rendering.
+- Scanned/image-PDF OCR (Hindi + English); large-PDF passage chunking + bounded-batch embedding.
+- **Deterministic intelligence (no LLM):** key_numbers + keywords + extractive Layer 1 → revives the 0-token answer path (0%→80% on factual queries, 100% accurate). Plus a deterministic table-aggregation engine.
 
-See [SPEC_DOCNEST_PYPI.md](docs/SPEC_DOCNEST_PYPI.md) for the complete technical spec.
+Next: resolve the dual-retriever architecture (ship the strong engine in the reader); multi-aspect query decomposition; JSON/PPTX/EPUB parsers.
+
+See [SPEC_DOCNEST_PYPI.md](docs/SPEC_DOCNEST_PYPI.md) for the complete technical spec and [CHANGELOG.md](CHANGELOG.md) for release detail.
 
 ---
 

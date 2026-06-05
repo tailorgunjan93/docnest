@@ -90,6 +90,19 @@ DOCNEST reads the *structure* of a document before touching the content. Every h
 
 The output is a `.udf` file — a self-contained portable knowledge base you can share by email, copy to USB, or upload to S3.
 
+### New in 0.7.0
+- **Zero-token answers (deterministic intelligence).** `key_numbers` and section `keywords`
+  are now extracted **without an LLM** (regex + ranking), so factual lookups are answered
+  from precomputed data at **0 tokens** — on the in-house benchmark this took the
+  zero-token answer rate from 0% → **80%** on factual queries, **100% accurate**, ~**92%**
+  fewer tokens than naive RAG. (An LLM is still optional for summaries/synthesis.)
+- **Deterministic table aggregation** (`docnest.aggregation`) — exact `sum`/`count`/`min`/
+  `max`/`avg` over a table column, fail-closed, no LLM.
+- **Better tables** — native PyMuPDF table extraction (fast PDF path), HTML `rowspan`/
+  `colspan`, DOCX merged cells, budgeted full-table rendering in the query path.
+- **Scanned/image PDFs** — lightweight OCR (Hindi + English) on the fast path.
+- **Large PDFs** — passage chunking + bounded-batch embedding (bounded memory).
+
 ---
 
 ## ⚡ Try it in 60 seconds
@@ -376,7 +389,7 @@ DOCNEST gives you two PDF parsers. Choose based on your document type and availa
 
 | | `DoclingPDFParser` | `PyMuPDFParser` |
 |---|---|---|
-| **Table quality** | ✅ ML-grade (TableFormer) | ⚠️ Heuristic (basic grids) |
+| **Table quality** | ✅ ML-grade (TableFormer) | ✅ Native (`find_tables`, default-on) |
 | **Scanned PDFs** | ✅ OCR support (heavy ML) | ✅ Lightweight OCR (opt-in) |
 | **Heading detection** | ✅ Semantic (Docling layout) | ⚠️ Font-size heuristic |
 | **RAM usage** | ~1–2 GB (ML models) | ~50 MB |
@@ -453,8 +466,8 @@ DOCNEST runs a **6-stage normalization pipeline** on every document:
 Stage 1  Structure Extraction    (Docling / PyMuPDF)   headings, tables, lists, hierarchy
 Stage 2  Section Assignment      (rule-based)           §1, §1.1, §1.2 … every heading = §id
 Stage 3  Table Normalization     (normaliser)           { caption, headers, rows[] } JSON
-Stage 4  Section Summarization   (LLM)                  one sentence per section
-Stage 5  Document Intelligence   (LLM)                  summary, insights[], key_numbers[]
+Stage 4  Section Keywords         (deterministic)        keyword index per section — no LLM
+Stage 5  Document Intelligence   (deterministic + LLM)  key_numbers (no LLM); summary/insights (LLM, optional)
 Stage 6  Embedding + Quantize    (local)                BM25 keywords + float16 vectors
 ```
 
