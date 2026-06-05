@@ -90,8 +90,30 @@ questions, local Ollama:
   80% zero-token, 100% accurate on L0/L1) but is weaker on academic-PDF *synthesis* questions
   (40%), which genuinely need reasoning — supplied cheaply by the LLM over L1-narrowed context.
 
+## Why PDF accuracy (50%/33%) is far below yesterday's 77% — and what we tried
+Same 1B model + same tuned judge scored **77%** in `rag_accuracy_eval` yesterday but **33%**
+in Phase 2 here. The cause is the **answer path**, not the scorer:
+- `rag_accuracy_eval`: the LLM answers **every** question over **rich HybridRetriever context**
+  (top-k sections, extracted sentences, full tables).
+- the `.udf` layered reader: **22/30 short-circuit at extractive Layer 1** (single sentence,
+  0 tokens, no LLM); escalations get **thin** single-section context. A single sentence is a
+  poor answer for multi-fact **synthesis** questions → 33%.
+
+**Investigated, NOT shipped — synthesis escalation.** We tried a deterministic synthesis
+classifier that routes "explain/how-does/what-does-X-say" questions to the LLM (gating the
+extractive Layer 1) with a larger multi-section budget. Measured (1B model): with-LLM
+accuracy **33% → 36% (+1 question)** but tokens **35 → 148 (4×)** — a **bad trade**. Reason:
+the reader's L2 is single-section/thin and the 1B model can't synthesise much better than the
+extracted sentence. Reverted (a change that worsens the measured trade-off doesn't ship).
+
+**Conclusion / boundary.** Deterministic 0-token answers excel at **structured/factual**
+queries (sample_report: 80% zero-token, 100% accurate). For **synthesis** on dense PDFs, the
+gap to 77% needs a **capable model + HybridRetriever-style rich multi-section context** — not
+re-routing within the thin `.udf` reader, and not the 1B local model. Re-open with a stronger
+model (quota permitting) to validate synthesis escalation end-to-end.
+
 ## Re-run
 ```
 python eval/observers_tax_eval.py    --udf <file.udf> --provider ollama --model llama3.2:1b
-python eval/observers_tax_phase2.py  # PDFs, with-LLM vs deterministic-only
+python eval/observers_tax_phase2.py  # PDFs, with-LLM vs deterministic-only (tuned judge)
 ```
