@@ -72,7 +72,26 @@ fired on a precomputed summary → added query-focused **extractive Layer 1** (t
 sentence at 0 tokens). L0+L1 answers are **100% accurate**; the 90% overall is the weak 1B
 model on the 2 remaining LLM-routed (Layer 3) questions, not the deterministic path.
 
+## Phase 2 (PDFs) — with-LLM vs deterministic-only (no LLM)
+`eval/observers_tax_phase2.py` builds a `.udf` per PDF (cached parse + deterministic
+key_numbers + keywords) and runs each question both ways (reader `allow_llm` flag). 30 PDF
+questions, local Ollama:
+
+| Mode | Answered | Correct | Tokens/query |
+|---|---|---|---|
+| Deterministic-only (no LLM) | 25/30 (83%) | 12/30 (40%) | **0** |
+| With-LLM (full stack) | — | 15/30 (50%) | 35 |
+
+- **Deterministic-only answers 83% of PDF questions at 0 tokens and captures ~80% of the
+  LLM's accuracy (40% vs 50%).**
+- **The LLM adds only +10% accuracy for ~35 tok/query** — cheap because 22/30 questions
+  resolve at Layer 1 (0 tokens) even in LLM mode; only ~5 escalate (layer dist {0:3,1:22,2:2,3:3}).
+- **Boundary:** deterministic extraction excels at structured/factual queries (sample_report:
+  80% zero-token, 100% accurate on L0/L1) but is weaker on academic-PDF *synthesis* questions
+  (40%), which genuinely need reasoning — supplied cheaply by the LLM over L1-narrowed context.
+
 ## Re-run
 ```
-python eval/observers_tax_eval.py --udf <file.udf> --provider ollama --model llama3.2:1b
+python eval/observers_tax_eval.py    --udf <file.udf> --provider ollama --model llama3.2:1b
+python eval/observers_tax_phase2.py  # PDFs, with-LLM vs deterministic-only
 ```

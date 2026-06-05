@@ -303,6 +303,7 @@ class UDFIndex:
         llm_provider: str | ILLMProvider = "groq",
         llm_model: str = "llama-3.3-70b-versatile",
         llm_api_key: str | None = None,
+        allow_llm: bool = True,
     ) -> QueryResult:
         """Resolve a question through the five-layer stack.
 
@@ -354,6 +355,10 @@ class UDFIndex:
                         tokens_used=0,
                         confidence=min(1.0, top_score),
                     )
+
+        # Deterministic-only mode: stop before any LLM layer (no token cost).
+        if not allow_llm:
+            return QueryResult(answer="", layer_used=-1, tokens_used=0, confidence=0.0)
 
         # ── Layer 2: single section LLM (~300 tokens) ─────────────────────
         if ranked:
