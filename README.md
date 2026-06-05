@@ -13,7 +13,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)](https://python.org)
 [![PyPI](https://img.shields.io/pypi/v/docnest-ai?color=green)](https://pypi.org/project/docnest-ai)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/docnest-ai?color=blue)](https://pypi.org/project/docnest-ai)
-[![Accuracy](https://img.shields.io/badge/RAG%20Accuracy-9.55%2F10-brightgreen)](https://github.com/tailorgunjan93/docnest#-accuracy-benchmark--multi-format-rag-evaluation)
+[![Accuracy](https://img.shields.io/badge/RAG%20Accuracy-8.5%2F10-brightgreen)](https://github.com/tailorgunjan93/docnest#-accuracy-benchmark--multi-format-rag-evaluation)
 [![Status](https://img.shields.io/badge/status-stable-brightgreen)]()
 [![Stars](https://img.shields.io/github/stars/tailorgunjan93/docnest?style=social)](https://github.com/tailorgunjan93/docnest)
 [![Contributors](https://img.shields.io/github/contributors/tailorgunjan93/docnest)](https://github.com/tailorgunjan93/docnest/graphs/contributors)
@@ -589,36 +589,35 @@ idx = UDFIndex.load("report.udf", vector="chroma",             # ChromaDB
 
 ## 🧪 Accuracy Benchmark — Multi-Format RAG Evaluation
 
-**88 questions · 10 documents · 5 formats** — the most comprehensive evaluation of any open-source RAG ingestion library.  
-Scored using **honest factual analysis** (not keyword overlap heuristics). Model: Cerebras `qwen-3-235b-a22b-instruct-2507`.
+**88 questions · 10 documents · 5 formats** — a comprehensive multi-format RAG evaluation.  
+Numbers below are the latest **reproducible** run: answer model Cerebras `gpt-oss-120b`, scored
+by the repo's judge (numeric + keyword, normalised). Reproduce with
+`python eval/rag_accuracy_eval.py --model cerebras/gpt-oss-120b`.
 
-### Results by Document
+### Accuracy by Format
 
-| Format | Document | Qs | Score | Pass Rate |
-|--------|----------|----|-------|-----------|
-| 📊 XLSX | Acme Corp Financial Workbook (10 sheets, formulas, multi-table) | 15 | **8.8 / 10** | 87% |
-| 📝 DOCX | TechVision Annual Report (29 sections, 12 tables) | 14 | **9.9 / 10** | ✅ 100% |
-| 🌐 HTML | NexusAPI v3 Developer Reference (rate limits, endpoints, SDKs) | 14 | **9.9 / 10** | ✅ 100% |
-| 📋 MD | CloudMesh Architecture Spec (DR tiers, observability, compliance) | 15 | **10.0 / 10** | ✅ 100% |
-| 📄 PDF | IPCC AR6 — Summary for Policymakers (122 sections) | 5 | **10.0 / 10** | ✅ 100% |
-| 📄 PDF | BIS Annual Economic Report 2024 | 5 | **10.0 / 10** | ✅ 100% |
-| 📄 PDF | GPT-3 Paper — Language Models are Few-Shot Learners | 5 | **7.8 / 10** | 60% |
-| 📄 PDF | Attention Is All You Need — Transformer Paper | 5 | **8.4 / 10** | 80% |
-| 📄 PDF | Llama 2 — Open Foundation and Fine-Tuned Chat Models | 5 | **10.0 / 10** | ✅ 100% |
-| 📄 PDF | Constitutional AI — Harmlessness from AI Feedback | 5 | **10.0 / 10** | ✅ 100% |
+| Format | Score | Pass Rate (≥ 7/10) | Questions |
+|--------|-------|--------------------|-----------|
+| 📊 XLSX | **9.6 / 10** | 93% | 15 |
+| 📝 DOCX | **9.4 / 10** | ✅ 100% | 14 |
+| 🌐 HTML | **9.3 / 10** | ✅ 100% | 14 |
+| 📋 MD | **8.9 / 10** | 93% | 15 |
+| 📄 PDF | **7.0 / 10** | 73% | 30 |
 
 ### Overall
 
 | Metric | Value |
 |--------|-------|
-| **Honest accuracy** | **9.55 / 10** |
-| **Pass rate (≥ 7/10)** | **95.5% — 84 / 88 questions** |
-| Real errors | **4** out of 88 questions |
-| Perfect-scoring formats | DOCX · HTML · MD · 3 × PDF |
+| **Average accuracy** | **8.5 / 10** |
+| **Pass rate (≥ 7/10)** | **89% — 78 / 88 questions** |
 | Documents | 10 across 5 formats |
-| Evaluator | Cerebras `qwen-3-235b-a22b-instruct-2507` |
+| Answer model | Cerebras `gpt-oss-120b` |
 
-> 6 out of 10 documents score **10.0/10**. Only **4 real retrieval errors** in the entire test suite.
+> Structured/business formats (XLSX/DOCX/HTML/MD) score **8.9–9.6**; dense academic PDFs are
+> the hardest at **7.0** and pull the average down. A prior run with the stronger
+> `qwen-3-235b` model reached **9.55/10** (that model is no longer publicly accessible, so the
+> reproducible `gpt-oss-120b` figure is reported here). Per-document detail and token/latency
+> tables are in `eval/results/`.
 
 ---
 
