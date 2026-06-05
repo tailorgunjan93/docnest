@@ -26,7 +26,9 @@ _PATTERNS = [
 _NUM_RE = re.compile("|".join(f"(?P<{n}>{p})" for n, p in _PATTERNS))
 _BULLET_LABEL = re.compile(r"\*\*\s*([^*:]+?)\s*:?\s*\*\*\s*:?")
 _LIST_MARKER = re.compile(r"^\s*\d+[.)]\s")          # "1. ", "2) "
-_IDENTIFIER = re.compile(r"[A-Za-z]-?\d|\d-?[A-Za-z]")  # AZ-204, ISO27001, H2
+# An identifier has a LETTER immediately before the number (v2, AZ-204, H2). We must NOT
+# treat a unit that FOLLOWS the number (142ms, 8x) as an identifier — that's a metric.
+_IDENTIFIER_PREFIX = re.compile(r"[A-Za-z]-?$")
 _FILLERS = {"the", "a", "an", "of", "to", "from", "and", "is", "was", "are", "now",
             "all", "with", "at", "by", "in", "on", "after", "down", "up", "for",
             "then", "it", "its", "this", "that", "we", "our"}
@@ -88,10 +90,10 @@ def extract_key_numbers(text: str, section_id: str) -> list[KeyNumber]:
             # Skip list-marker ordinals at the very start of a list line.
             if is_list_line and m.start() < _LIST_MARKER.match(line).end():
                 continue
-            # Skip numbers that are part of an identifier (AZ-204) or follow an all-caps
-            # acronym (ISO 27001) — these are identifiers, not metrics.
-            ctx = line[max(0, m.start() - 4):min(len(line), m.end() + 2)]
-            if _IDENTIFIER.search(ctx) or _acronym_prefixed(line[:m.start()]):
+            # Skip identifiers: a letter/dash immediately before the number (AZ-204, v2) or
+            # an all-caps acronym prefix (ISO 27001). Units that FOLLOW (142ms) are kept.
+            left = line[:m.start()]
+            if _IDENTIFIER_PREFIX.search(left) or _acronym_prefixed(left):
                 continue
             canon = parse_number(raw)
             # Skip bare years presented as a plain count (no $, %, unit).

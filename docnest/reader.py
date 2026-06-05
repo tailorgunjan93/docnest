@@ -46,6 +46,75 @@ _SECTION_PROSE_CHARS = 2000   # Layer-2 prose cap — the table is appended sepa
 _MULTI_PROSE_CHARS = 600      # Layer-3 per-section prose cap (several sections combined)
 _MULTI_TABLE_BUDGET = 800     # Layer-3 per-section table budget (smaller — multi-section)
 
+# Layer-0 key-number matching: filler + optional-modifier tokens.
+_KN_FILLERS = {"the", "a", "an", "of", "to", "from", "in", "on", "at", "by", "for", "and",
+               "or", "is", "was", "are", "were", "what", "which", "how", "many", "much",
+               "does", "did", "do", "this", "that", "it", "its", "with", "as", "be", "you",
+               "your", "we", "our", "there", "per"}
+# Quantifier/modifier words that are OPTIONAL in a label↔question match (so "Avg response
+# time" still answers "what was the response time?").
+_KN_SOFT = {"avg", "average", "mean", "median", "total", "overall", "gross", "net",
+            "monthly", "annual", "yearly", "daily", "number", "count", "amount", "value"}
+
+
+def _kn_tokens(text: str) -> list[str]:
+    """Lowercase alnum tokens, lightly singularised (drop a trailing plural 's')."""
+    out = []
+    for t in re.findall(r"[a-z0-9]+", str(text).lower()):
+        if len(t) > 3 and t.endswith("s") and not t.endswith("ss"):
+            t = t[:-1]
+        out.append(t)
+    return out
+
+
+def _best_sentences(text: str, question: str, n: int = 2) -> str:
+    """Return the question-relevant sentence(s) from a section (0-token extractive answer).
+
+    Scores each sentence by overlap with the question's content tokens; returns the top ``n``
+    in document order. Empty string if there is no overlap (don't fabricate an answer).
+    """
+    sents = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text or "") if len(s.strip()) > 15]
+    if not sents:
+        return ""
+    qtok = {t for t in re.findall(r"[a-z0-9]+", question.lower())
+            if len(t) > 2 and t not in _KN_FILLERS}
+    if not qtok:
+        return ""
+
+    def score(s: str) -> int:
+        return len(qtok & set(re.findall(r"[a-z0-9]+", s.lower())))
+
+    order = sorted(range(len(sents)), key=lambda i: score(sents[i]), reverse=True)
+    if score(sents[order[0]]) == 0:
+        return ""
+    keep = sorted(order[:n])
+    return " ".join(sents[i] for i in keep)
+
+
+def _match_key_number(question: str, key_numbers: list) -> dict | None:
+    """Return the key_number whose label's *core* tokens are all present in the question.
+
+    Core tokens = label tokens minus fillers and optional modifiers. Match is word-order
+    independent. Among the most-specific matches, if values disagree the result is ambiguous
+    → return None (never guess). Keeps Layer-0 answers exact.
+    """
+    qtok = set(_kn_tokens(question))
+    if not qtok:
+        return None
+    candidates: list[tuple[int, dict]] = []
+    for kn in key_numbers:
+        ltok = [t for t in _kn_tokens(kn.get("label", "")) if t not in _KN_FILLERS]
+        core = [t for t in ltok if t not in _KN_SOFT] or ltok
+        if core and all(t in qtok for t in core):
+            candidates.append((len(core), kn))
+    if not candidates:
+        return None
+    best = max(c[0] for c in candidates)
+    top = [kn for spec, kn in candidates if spec == best]
+    if len({kn.get("value") for kn in top}) > 1:   # ambiguous → don't guess
+        return None
+    return top[0]
+
 
 def _render_table(table: dict, budget: int = _TABLE_CHAR_BUDGET) -> str:
     """Render a table as text up to ``budget`` characters.
@@ -273,6 +342,18 @@ class UDFIndex:
                         tokens_used=0,
                         confidence=min(1.0, top_score),
                     )
+                # Extractive Layer 1: no precomputed summary → return the question-relevant
+                # sentence(s) from the confidently-ranked section, at 0 tokens (no LLM).
+                extract = _best_sentences(self._get_section_text(top_id), question, n=2)
+                if extract:
+                    return QueryResult(
+                        answer=extract,
+                        citations=[top_id],
+                        navigate_to=top_id,
+                        layer_used=1,
+                        tokens_used=0,
+                        confidence=min(1.0, top_score),
+                    )
 
         # ── Layer 2: single section LLM (~300 tokens) ─────────────────────
         if ranked:
@@ -334,13 +415,12 @@ class UDFIndex:
             if insights:
                 return "\n".join(f"• {i}" for i in insights)
 
-        # Key number lookup (e.g. "what is revenue" → find label match)
-        key_numbers = self._catalogue.get("key_numbers", [])
-        for kn in key_numbers:
-            label = kn.get("label", "").lower()
-            if label and label in q:
-                unit = f" {kn['unit']}" if kn.get("unit") else ""
-                return f"{kn['label']}: {kn['value']}{unit} (source: {kn.get('section', '')})"
+        # Key number lookup — match the key_number whose label's core tokens are all present
+        # in the question (word-order & modifier tolerant), skipping ambiguous matches.
+        kn = _match_key_number(q, self._catalogue.get("key_numbers", []))
+        if kn:
+            unit = f" {kn['unit']}" if kn.get("unit") else ""
+            return f"{kn['label']}: {kn['value']}{unit} (source: {kn.get('section', '')})"
 
         return None
 

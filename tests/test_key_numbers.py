@@ -73,6 +73,39 @@ class TestDocumentEnrichment:
         assert [k.label for k in doc.key_numbers] == ["existing"]   # untouched
 
 
+class TestDurationExtraction:
+    def test_unit_attached_duration_is_extracted(self):
+        from docnest.key_numbers import extract_key_numbers
+        kns = {k.label.lower(): k.value for k in
+               extract_key_numbers("- **Avg response time:** 142ms (down from 310ms)", "§x")}
+        # the unit-attached number (142ms) must NOT be skipped as an identifier
+        assert any("142" in v for v in kns.values())
+
+
+class TestRobustMatching:
+    """Layer-0 matching: word-order tolerant + modifier-tolerant, ambiguity-guarded."""
+
+    def _idx(self, key_numbers):
+        from docnest.reader import UDFIndex
+        return UDFIndex(
+            catalogue={"section_index": [], "summary": "", "insights": [],
+                       "key_numbers": key_numbers},
+            content={"sections": {}}, zip_path="dummy.udf", embedding_dims=0)
+
+    def test_word_order_and_modifier_tolerant(self):
+        idx = self._idx([{"label": "Avg response time", "value": "142ms", "section": "§1"}])
+        # "avg" is an optional modifier; word order differs
+        assert "142" in (idx.get_precomputed("what was the average response time?") or "")
+
+    def test_ambiguous_values_are_skipped(self):
+        idx = self._idx([
+            {"label": "Monthly cloud spend", "value": "$18,400", "section": "§1"},
+            {"label": "Monthly cloud spend", "value": "$14,350", "section": "§1"},
+        ])
+        # two different values under the same label → unsafe → no Layer-0 answer
+        assert idx.get_precomputed("what is the monthly cloud spend?") is None
+
+
 class TestLayer0Revived:
     """The payoff: deterministic key_numbers let the reader answer at Layer 0 (0 tokens)."""
 
