@@ -67,15 +67,19 @@ This approach treats a 40-page financial report the same as a Reddit post. Table
 
 88 questions across 10 real-world documents in 5 formats, scored with honest factual analysis:
 
+Latest **reproducible** run (answer model Cerebras `gpt-oss-120b`, repo judge, 88 questions):
+
 | Format | Score | Pass Rate |
 |---|---|---|
-| DOCX, HTML, MD | 9.9–10.0 / 10 | 100% |
-| XLSX | 8.8 / 10 | 87% |
-| PDF (simple) | 10.0 / 10 | 100% |
-| PDF (dense research) | 7.8–8.4 / 10 | 60–80% |
-| **Overall** | **9.55 / 10** | **95.5%** |
+| XLSX | 9.6 / 10 | 93% |
+| DOCX | 9.4 / 10 | 100% |
+| HTML | 9.3 / 10 | 100% |
+| MD | 8.9 / 10 | 93% |
+| PDF (dense research) | 7.0 / 10 | 73% |
+| **Overall** | **8.5 / 10** | **89% (78/88)** |
 
-4 real errors in 88 questions — all retrieval/indexing issues, zero LLM hallucinations.
+A prior run with the stronger `qwen-3-235b` model reached **9.55/10** (no longer publicly
+accessible). Structured/business formats score 8.9–9.6; dense academic PDFs are the hard case.
 
 ### Market size
 Enterprise RAG market: $1.2B in 2024, projected $8.9B by 2029 (CAGR 49%). Every RAG pipeline is a potential DOCNEST customer.
