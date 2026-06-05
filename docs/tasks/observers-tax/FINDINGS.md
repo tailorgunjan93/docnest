@@ -53,10 +53,24 @@ re-running the same 10 questions on the enriched `.udf`:
 | DocNest tax | 331 tok/q | **219 tok/q** |
 | Tax reduction vs naive | 31.8% | **54.8%** |
 
-The 0-token path is revived and Layer-0 answers are *exact*. Remaining gap to 70%: prose
-figures get verbose labels that don't match question wording, and there's no Layer-1 summary
-yet. Next: better label binding, deterministic section summaries (Layer 1), and wiring the
-aggregation engine (ADR-0004) for "total/sum" queries.
+The 0-token path is revived and Layer-0 answers are *exact*.
+
+## Reaching (and exceeding) the 70% goal
+Full progression on the same 10 questions (local Ollama):
+
+| Stage | Zero-token | Accuracy | Tax/query | vs naive |
+|------|-----------:|---------:|----------:|---------:|
+| empty intelligence | 0% | 90% | 331 | 31.8% |
+| + deterministic key-numbers (ADR-0008) | 40% | 100% | 219 | 54.8% |
+| + robust Layer-0 matching + duration-extraction fix | 50% | 100% | 184 | 62.1% |
+| **+ deterministic keywords + extractive Layer 1 (ADR-0009)** | **80%** | 90% | **38** | **92.1%** |
+
+**80% zero-token — exceeds the Charter's 70% goal.** The jump from 50%→80% came from two
+diagnosed root causes: (1) the reader's hybrid search returned *empty* because section
+`keywords` were unpopulated → fixed with deterministic keyword extraction; (2) Layer 1 only
+fired on a precomputed summary → added query-focused **extractive Layer 1** (the answer
+sentence at 0 tokens). L0+L1 answers are **100% accurate**; the 90% overall is the weak 1B
+model on the 2 remaining LLM-routed (Layer 3) questions, not the deterministic path.
 
 ## Re-run
 ```

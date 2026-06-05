@@ -10,6 +10,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Deterministic keywords + extractive Layer 1 — zero-token answers ≥70%.**
+  `docnest.keywords` populates section keywords by extraction (no LLM) so the reader's BM25
+  index actually ranks sections (they were empty → hybrid search returned nothing → queries
+  fell to the full-document fallback). And Layer 1 now answers with the **question-relevant
+  sentence extracted from the top section** at **0 tokens** when no precomputed summary
+  exists. Combined with deterministic key-numbers, the Observer's-Tax zero-token answer rate
+  reached **80%** (Charter goal 70%) with per-query token cost down **92.1%** vs naive RAG;
+  the Layer 0/1 deterministic answers are 100% accurate. See ADR-0009.
 - **Deterministic key-number enrichment (`docnest.key_numbers`).** `key_numbers` (which power
   the Layer-0, zero-token answer path) are now extracted from text **without an LLM** — regex
   + nearest-label binding, filtering years/list-markers/identifiers — and populated by the

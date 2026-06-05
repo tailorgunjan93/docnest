@@ -25,3 +25,4 @@ significant decision is not "done" until its ADR exists here.
 - [0006 — Native table extraction in PyMuPDFParser (default-on)](0006-pymupdf-native-table-extraction.md) — Accepted
 - [0007 — Passage chunking for large sections (retrievability)](0007-passage-chunking-for-large-sections.md) — Accepted
 - [0008 — Deterministic key-number enrichment (revive the 0-token path)](0008-deterministic-key-number-enrichment.md) — Accepted
+- [0009 — Deterministic keywords + extractive Layer 1 (push 0-token to ≥70%)](0009-deterministic-keywords-extractive-layer1.md) — Accepted

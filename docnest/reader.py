@@ -67,6 +67,30 @@ def _kn_tokens(text: str) -> list[str]:
     return out
 
 
+def _best_sentences(text: str, question: str, n: int = 2) -> str:
+    """Return the question-relevant sentence(s) from a section (0-token extractive answer).
+
+    Scores each sentence by overlap with the question's content tokens; returns the top ``n``
+    in document order. Empty string if there is no overlap (don't fabricate an answer).
+    """
+    sents = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text or "") if len(s.strip()) > 15]
+    if not sents:
+        return ""
+    qtok = {t for t in re.findall(r"[a-z0-9]+", question.lower())
+            if len(t) > 2 and t not in _KN_FILLERS}
+    if not qtok:
+        return ""
+
+    def score(s: str) -> int:
+        return len(qtok & set(re.findall(r"[a-z0-9]+", s.lower())))
+
+    order = sorted(range(len(sents)), key=lambda i: score(sents[i]), reverse=True)
+    if score(sents[order[0]]) == 0:
+        return ""
+    keep = sorted(order[:n])
+    return " ".join(sents[i] for i in keep)
+
+
 def _match_key_number(question: str, key_numbers: list) -> dict | None:
     """Return the key_number whose label's *core* tokens are all present in the question.
 
@@ -312,6 +336,18 @@ class UDFIndex:
                 if summary:
                     return QueryResult(
                         answer=summary,
+                        citations=[top_id],
+                        navigate_to=top_id,
+                        layer_used=1,
+                        tokens_used=0,
+                        confidence=min(1.0, top_score),
+                    )
+                # Extractive Layer 1: no precomputed summary → return the question-relevant
+                # sentence(s) from the confidently-ranked section, at 0 tokens (no LLM).
+                extract = _best_sentences(self._get_section_text(top_id), question, n=2)
+                if extract:
+                    return QueryResult(
+                        answer=extract,
                         citations=[top_id],
                         navigate_to=top_id,
                         layer_used=1,
