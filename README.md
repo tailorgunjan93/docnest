@@ -20,7 +20,7 @@
 
 <img src="docs/banner.svg" alt="DOCNEST Banner" width="100%" />
 
-[Why DOCNEST](#why-docnest) •
+[Why DOCNEST](#-why-docnest) •
 [Installation](#-installation) •
 [Quick Start](#-quick-start) •
 [Python API](#-python-api) •
