@@ -14,7 +14,7 @@
 [![PyPI](https://img.shields.io/pypi/v/docnest-ai?color=green)](https://pypi.org/project/docnest-ai)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/docnest-ai?color=blue)](https://pypi.org/project/docnest-ai)
 [![Accuracy](https://img.shields.io/badge/RAG%20Accuracy-8.5%2F10-brightgreen)](https://github.com/tailorgunjan93/docnest#-accuracy-benchmark--multi-format-rag-evaluation)
-[![Status](https://img.shields.io/badge/status-stable-brightgreen)]()
+[![Status](https://img.shields.io/badge/status-stable-brightgreen)](https://github.com/tailorgunjan93/docnest)
 [![Stars](https://img.shields.io/github/stars/tailorgunjan93/docnest?style=social)](https://github.com/tailorgunjan93/docnest)
 [![Contributors](https://img.shields.io/github/contributors/tailorgunjan93/docnest)](https://github.com/tailorgunjan93/docnest/graphs/contributors)
 
@@ -91,11 +91,7 @@ DOCNEST reads the *structure* of a document before touching the content. Every h
 The output is a `.udf` file — a self-contained portable knowledge base you can share by email, copy to USB, or upload to S3.
 
 ### New in 0.7.0
-- **Zero-token answers (deterministic intelligence).** `key_numbers` and section `keywords`
-  are now extracted **without an LLM** (regex + ranking), so factual lookups are answered
-  from precomputed data at **0 tokens** — on the in-house benchmark this took the
-  zero-token answer rate from 0% → **80%** on factual queries, **100% accurate**, ~**92%**
-  fewer tokens than naive RAG. (An LLM is still optional for summaries/synthesis.)
+- **Zero-token answers (Deterministic Intelligence):** The `key_numbers` and section `keywords` are now extracted natively without an LLM via regex and specialized ranking rules. Factual lookups are resolved entirely from precomputed metadata at absolute zero token cost. On the in-house benchmark, this took the zero-token answer rate from 0% to **80%** on factual queries with **100% accuracy**, using ~**92%** fewer tokens than naive RAG. (An LLM is still optional for summaries/synthesis.)
 - **Deterministic table aggregation** (`docnest.aggregation`) — exact `sum`/`count`/`min`/
   `max`/`avg` over a table column, fail-closed, no LLM.
 - **Better tables** — native PyMuPDF table extraction (fast PDF path), HTML `rowspan`/
@@ -641,7 +637,7 @@ DocNest retrieves **only the relevant sections** — anywhere in the document.
 > ¹ Traditional baseline = first 3,456 tokens (blind top-slice — misses content buried in the document).  
 > DocNest retrieves relevant chunks from *anywhere* in a 50-page paper. More tokens, but the **right** tokens.  
 > On a real pipeline sending the **full** document: a 50-page PDF ≈ 80,000–120,000 tokens per question.  
-> DocNest retrieves ~9,000 tokens — a **90 %+ reduction** while answering more accurately.
+> DocNest retrieves ~9,000 tokens — a **90%+ reduction** while answering more accurately.
 
 **Why this matters for cost:**
 
